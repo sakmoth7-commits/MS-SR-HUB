@@ -412,6 +412,7 @@
         <div class="col-6 col-md-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="stUsername"><label class="form-check-label" for="stUsername">Username</label></div></div>
       </div>
       <div class="row g-3 mt-1">
+        <div class="col-12"><label class="form-label" for="stLogoFile">Logo image</label><input id="stLogoFile" class="form-control" type="file" accept="image/png,image/jpeg,image/webp"><div class="form-text">Upload a PNG, JPG, or WebP logo (max 150 KB). It will be saved with shared overlay settings.</div><div class="small text-muted mt-1" id="stLogoStatus">No custom logo uploaded.</div><button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="stLogoRemove">Remove uploaded logo</button></div>
         <div class="col-md-6"><label class="form-label" for="stTitle">Label text</label><input id="stTitle" class="form-control" maxlength="80" placeholder="#Merchant Support SR"></div>
         <div class="col-md-6"><label class="form-label" for="stTimezone">Timezone</label><input id="stTimezone" class="form-control" value="Asia/Phnom_Penh"></div>
         <div class="col-md-6"><label class="form-label" for="stTextPos">Text position</label><select id="stTextPos" class="form-select"><option>Top left</option><option>Top right</option><option>Bottom left</option><option>Bottom right</option><option>Center</option></select></div>
@@ -420,7 +421,7 @@
         <div class="col-md-6"><label class="form-label" for="stOpacity">Text opacity (%)</label><input id="stOpacity" class="form-control" type="number" min="0" max="100" value="100"></div>
       </div>
       <div id="stAdminNote" class="small text-muted mt-3">Only administrators can save shared settings. GPS/address need location permission and internet access.</div>
-      <div id="stMapNote" class="small text-warning mt-1">Map and logo toggles are stored for configuration; a map tile/logo image is not currently available in this app to render on photos.</div>
+      <div id="stMapNote" class="small text-warning mt-1">The logo upload is saved to shared settings. Map imagery is not yet rendered onto photos.</div>
     </div>
     <div class="modal-footer border-0 pt-0"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-brand px-4" id="stSave">Save settings</button></div>
   </div></div>
@@ -814,7 +815,7 @@ $('#addMerchantBtn').addEventListener('click', () => {
 let stampOn = store.get('it_stamp') !== '0';          // on by default; remembered
 let stampGeo = store.get('it_stamp_geo') !== '0';       // GPS + address on the stamp
 let stampTitle = store.get('it_stamp_title'); if (stampTitle === null) stampTitle = '#Merchant Support SR';
-let overlaySettings = { timestamp:true, gps:true, address:true, map:true, label:true, logo:true, username:false, labelText:'#Merchant Support SR', textPosition:'Bottom right', mapPosition:'Bottom left', fontSize:24, textOpacity:100, timezone:'Asia/Phnom_Penh' };
+let overlaySettings = { timestamp:true, gps:true, address:true, map:true, label:true, logo:true, logoData:'', username:false, labelText:'Merchant Support SR', textPosition:'Bottom right', mapPosition:'Bottom left', fontSize:24, textOpacity:100, timezone:'Asia/Phnom_Penh' };
 let overlaySettingsLoaded = false;
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const p2 = n => String(n).padStart(2, '0');
@@ -1237,6 +1238,7 @@ function readOverlayForm() {
   out.fontSize = Math.max(10,Math.min(48,Number($('#stFont').value)||24));
   out.textOpacity = Math.max(0,Math.min(100,Number($('#stOpacity').value)||0));
   out.timezone = $('#stTimezone').value.trim() || 'Asia/Phnom_Penh';
+  out.logoData = overlaySettings.logoData || '';
   return out;
 }
 function fillOverlayForm(cfg) {
@@ -1244,9 +1246,10 @@ function fillOverlayForm(cfg) {
   $('#stTitle').value = cfg.labelText || ''; $('#stTextPos').value = cfg.textPosition || 'Bottom right';
   $('#stMapPos').value = cfg.mapPosition || 'Bottom left'; $('#stFont').value = cfg.fontSize || 24;
   $('#stOpacity').value = cfg.textOpacity == null ? 100 : cfg.textOpacity; $('#stTimezone').value = cfg.timezone || 'Asia/Phnom_Penh';
+  $('#stLogoStatus').textContent = cfg.logoData ? 'Custom logo uploaded.' : 'No custom logo uploaded.'; $('#stLogoFile').value = ''; $('#stLogoRemove').disabled = !(S.user && S.user.role === 'Admin');
   const admin = !!(S.user && S.user.role === 'Admin');
   $('#stSave').hidden = !admin; $('#stAdminNote').textContent = admin ? 'Changes are shared with all users and stored in the OverlaySettings Google Sheet.' : 'Read-only shared settings. Contact an administrator to change them.';
-  ['stTimestamp','stGps','stAddress','stMap','stLabel','stLogo','stUsername','stTitle','stTextPos','stMapPos','stFont','stOpacity','stTimezone'].forEach(id => { $('#' + id).disabled = !admin; });
+  ['stTimestamp','stGps','stAddress','stMap','stLabel','stLogo','stUsername','stTitle','stTextPos','stMapPos','stFont','stOpacity','stTimezone','stLogoFile'].forEach(id => { $('#' + id).disabled = !admin; });
 }
 async function loadOverlaySettings() {
   if (!S.token) return;
@@ -1269,6 +1272,14 @@ function drawStampPreview() {
 function openStampSettings() { fillOverlayForm(overlaySettings); drawStampPreview(); stampModal.show(); }
 Object.values(overlayFields).forEach(id => $('#' + id).addEventListener('change', drawStampPreview));
 ['stTitle','stTextPos','stMapPos','stFont','stOpacity','stTimezone'].forEach(id => $('#' + id).addEventListener('input', drawStampPreview));
+$('#stLogoFile').addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0]; if (!file) return;
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 150 * 1024) { toast('Choose a PNG, JPG, or WebP logo under 150 KB.', 'warning'); e.target.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = () => { overlaySettings.logoData = String(reader.result || ''); $('#stLogoStatus').textContent = 'Logo ready to save: ' + file.name; };
+  reader.onerror = () => toast('Could not read that logo file.', 'danger'); reader.readAsDataURL(file);
+});
+$('#stLogoRemove').addEventListener('click', () => { overlaySettings.logoData = ''; $('#stLogoFile').value = ''; $('#stLogoStatus').textContent = 'Custom logo will be removed when you save.'; });
 $('#stSave').addEventListener('click', async () => {
   const btn = $('#stSave'); busy(btn, true, 'Saving…');
   try {
