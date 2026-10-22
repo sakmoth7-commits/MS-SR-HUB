@@ -422,7 +422,7 @@
         <div class="col-md-6"><label class="form-label" for="stOpacity">Text opacity (%)</label><input id="stOpacity" class="form-control" type="number" min="0" max="100" value="100"></div>
       </div>
       <div id="stAdminNote" class="small text-muted mt-3">Only administrators can save shared settings. GPS/address need location permission and internet access.</div>
-      <div id="stMapNote" class="small text-warning mt-1">The logo upload is saved to shared settings. Map imagery is not yet rendered onto photos.</div>
+      <div id="stMapNote" class="small text-warning mt-1">When photo stamping is enabled, the uploaded logo and a small schematic location panel are added to the photo. The panel is not live map imagery.</div>
     </div>
     <div class="modal-footer border-0 pt-0"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-brand px-4" id="stSave">Save settings</button></div>
   </div></div>
@@ -477,8 +477,8 @@ const MAX_MERCHANTS = 10;
 const TYPES = ['QR', 'POS', 'SB', 'Payway Inspection'];
 const ACTIVITIES = {
   'QR': ['Refreshment', 'Installation'],
-  'POS': ['Maintenance', 'Fixed Issue', 'New Install', 'Paper Roll', 'Battery Replacement', 'Item Removal', 'Deployment', 'Refreshment Training'],
-  'SB': ['Maintenance', 'Fixed Issue', 'Battery Replacement', 'New Install'],
+  'POS': ['Maintenance', 'Fixed Issue', 'New Install', 'Replace', 'Paper Roll', 'Battery Replacement', 'Item Removal', 'Deployment', 'Refreshment Training'],
+  'SB': ['Maintenance', 'Fixed Issue', 'New Install', 'Replace', 'Battery Replacement'],
   'Payway Inspection': ['Inspection', 'Merchant Inquiries']
 };
 const isInstall = a => a === 'Installation' || a === 'New Install';
@@ -509,11 +509,11 @@ function applyType(card) {
 const ACTIVITY_FIELD_RULES = {};
 function updateActivityFields(card) {
   const a = $('.f-act', card.el).value;
-  const replace = a === 'Replace' || a === 'Replacement' || a === 'Device Replacement';
-  showAll = (selector, on) => $$(selector, card.el).forEach(el => show(el, on));
+  const replace = ['Replace','Replacement','Device Replacement'].includes(a);
+  const showAll = (selector, on) => $$(selector, card.el).forEach(el => show(el, on));
   showAll('.serial-wrap', replace);
   const defaults = ACTIVITY_FIELD_RULES[curType + '|' + a] || {};
-  const standardExceptions = ['New Install','Replace','Change Battery','Fixed Issue','Maintenance'];
+  const standardExceptions = ['New Install','Replace','Replacement','Device Replacement','Change Battery','Battery Replacement','Fixed Issue','Maintenance'];
   const showContact = defaults.phoneShow != null ? defaults.phoneShow : !standardExceptions.includes(a);
   const showTag = defaults.tagShow != null ? defaults.tagShow : !standardExceptions.includes(a);
   showAll('.phone-wrap', showContact); showAll('.tag-wrap', showTag);
@@ -934,23 +934,51 @@ function drawStamp(ctx, w, h, lines) {
   lines.forEach((t, i) => ctx.fillText(t, x, top + i * lh));
   ctx.restore();
 }
+function loadImage(src) {
+  return new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = reject; im.src = src; });
+}
+function drawMiniMap(ctx, w, h, p) {
+  // A small offline schematic locator (not live map imagery); avoids unreliable third-party canvas tiles.
+  const cfg = overlaySettings || {}, size = Math.max(72, Math.round(w * 0.22)), pad = Math.round(w * 0.04);
+  const pos = cfg.mapPosition || 'Bottom left', x = pos.endsWith('right') ? w - size - pad : pad;
+  const y = pos.startsWith('Top') ? pad : h - size - pad;
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fillRect(x,y,size,size);
+  ctx.strokeStyle = '#9aa6b2'; ctx.lineWidth = Math.max(1,w/640); ctx.strokeRect(x,y,size,size);
+  ctx.strokeStyle = '#c6cdd4'; ctx.lineWidth = Math.max(1,w/800);
+  for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(x+size*i/4,y);ctx.lineTo(x+size*i/4,y+size);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y+size*i/4);ctx.lineTo(x+size,y+size*i/4);ctx.stroke();}
+  ctx.fillStyle = '#dc3545'; ctx.beginPath(); ctx.arc(x+size/2,y+size/2,size*.075,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#25313d'; ctx.font = '600 '+Math.max(8,Math.round(size*.09))+'px Arial'; ctx.textAlign='center';
+  ctx.fillText(p ? p.lat.toFixed(4)+', '+p.lon.toFixed(4) : 'GPS unavailable',x+size/2,y+size*.91,size*.92); ctx.restore();
+}
+async function drawPhotoOverlays(ctx, w, h) {
+  const cfg = overlaySettings || {};
+  if (cfg.logo && cfg.logoData) {
+    try {
+      const logo = await loadImage(cfg.logoData), maxW = Math.round(w*.18), maxH = Math.round(h*.12);
+      const r = Math.min(maxW/logo.width,maxH/logo.height,1), lw=Math.round(logo.width*r), lh=Math.round(logo.height*r), pad=Math.round(w*.04);
+      const pos=cfg.textPosition||'Bottom right', x=pos.endsWith('left')?pad:w-lw-pad, y=pos.startsWith('Top')?pad:h-lh-pad;
+      ctx.save(); ctx.globalAlpha=Math.max(0,Math.min(100,Number(cfg.textOpacity??100))/100); ctx.drawImage(logo,x,y,lw,lh); ctx.restore();
+    } catch(e) { console.warn('Photo logo could not be rendered',e); }
+  }
+  if (cfg.map) drawMiniMap(ctx,w,h,geo.pos);
+}
 function compress(file, opts) {
   opts = opts || {};
   const max = opts.max || 1280, q = opts.q || 0.72;
   return new Promise((resolve, reject) => {
     const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => {
-      const r = Math.min(1, max / Math.max(img.width, img.height));
-      const w = Math.round(img.width * r), h = Math.round(img.height * r);
-      const c = document.createElement('canvas'); c.width = w; c.height = h;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      if (opts.stamp) drawStamp(ctx, w, h, opts.lines && opts.lines.length ? opts.lines : [stampDateTime(file.lastModified)]);
-      URL.revokeObjectURL(url);
-      resolve(c.toDataURL('image/jpeg', q));
+    img.onload = async () => {
+      try {
+        const r = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * r), h = Math.round(img.height * r);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+        if (opts.stamp) drawStamp(ctx, w, h, opts.lines && opts.lines.length ? opts.lines : [stampDateTime(file.lastModified)]);
+        if (opts.stamp) await drawPhotoOverlays(ctx,w,h);
+        URL.revokeObjectURL(url); resolve(c.toDataURL('image/jpeg', q));
+      } catch(e) { URL.revokeObjectURL(url); reject(e); }
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Unreadable image')); };
-    img.src = url;
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Unreadable image')); }; img.src = url;
   });
 }
 async function addPhotos(card, files, fromCamera) {
@@ -1003,6 +1031,7 @@ $('#submitBtn').addEventListener('click', async () => {
     items.push({ type: curType, activity, tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: g('.f-biz') || 'N/A', merchant: g('.f-name'), mid: g('.f-mid'), remarks, phone: g('.f-phone'), tag: g('.f-tag'), oldSN: g('.f-oldsn'), newSN: g('.f-newsn'), location: (geo.pos ? coordText(geo.pos) : ''), address: (geo.place ? [geo.place.street, geo.place.city].filter(Boolean).join(', ') : ''), photos: c.photos });
   }
   const btn = $('#submitBtn');
+  if ((overlaySettings.gps || overlaySettings.address) && !geo.pos) { try { await refreshGeo(8000); } catch (e) {} }
   busy(btn, true, 'Submitting…');
   try {
     const r = await api('submitInstallations', S.token, items);
