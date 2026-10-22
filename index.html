@@ -322,13 +322,13 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:20px">
       <div class="modal-header border-0 pb-0">
-        <h6 class="modal-title fw-bold">Scan KHQR</h6>
+        <h6 class="modal-title fw-bold" id="scanModalTitle">Scan KHQR</h6>
         <button class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <video id="scanVideo" playsinline muted></video>
         <div id="scanError" class="alert alert-warning small mt-3 mb-0 hidden"></div>
-        <p class="text-muted small mt-2 mb-0">Point the camera at the merchant QR. If the camera is blocked, close this and use <b>Upload</b>.</p>
+        <p class="text-muted small mt-2 mb-0">Point the camera at the KHQR or serial-number barcode. Keep the code inside the camera view.</p>
       </div>
     </div>
   </div>
@@ -471,7 +471,7 @@ const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const show = (el, on = true) => el.classList.toggle('hidden', !on);
 
-const S = { token: null, user: null, cards: [], seq: 0, rows: [], chart: null, scanTarget: null, reader: null };
+const S = { token: null, user: null, cards: [], seq: 0, rows: [], chart: null, scanTarget: null, scanMode: 'khqr', scanField: null, reader: null, nativeStream: null, nativeFrame: 0, nativeDetector: null };
 const MAX_PHOTOS = 10;
 const MAX_MERCHANTS = 10;
 const TYPES = ['QR', 'POS', 'SB', 'Payway Inspection'];
@@ -509,7 +509,7 @@ function applyType(card) {
 const ACTIVITY_FIELD_RULES = {};
 function updateActivityFields(card) {
   const a = $('.f-act', card.el).value;
-  const replace = ['Replace','Replacement','Device Replacement'].includes(a);
+  const replace = ['Replace','Replacement','Device Replacement','Battery Replacement','Change Battery'].includes(a);
   const showAll = (selector, on) => $$(selector, card.el).forEach(el => show(el, on));
   showAll('.serial-wrap', replace);
   const defaults = ACTIVITY_FIELD_RULES[curType + '|' + a] || {};
@@ -695,21 +695,125 @@ function applyQR(card, text) {
   return true;
 }
 
-/* ---- camera ---- */
+/* ---- camera / QR decoder ---- */
 const scanModal = new bootstrap.Modal($('#scanModal'));
+let zxingLoadPromise = null;
+async function ensureZXing() {
+  if (window.ZXing && window.ZXing.BrowserQRCodeReader) return window.ZXing;
+  if (zxingLoadPromise) return zxingLoadPromise;
+  zxingLoadPromise = (async () => {
+    const urls = [
+      'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js',
+      'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js'
+    ];
+    let lastError;
+    for (const src of urls) {
+      try {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = src; script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => { script.remove(); reject(new Error('Could not load QR decoder')); };
+          document.head.appendChild(script);
+        });
+        if (window.ZXing && window.ZXing.BrowserQRCodeReader) return window.ZXing;
+        lastError = new Error('QR decoder loaded but its API was unavailable');
+      } catch (e) { lastError = e; }
+    }
+    throw lastError || new Error('QR decoder unavailable');
+  })().finally(() => { if (!window.ZXing || !window.ZXing.BrowserQRCodeReader) zxingLoadPromise = null; });
+  return zxingLoadPromise;
+}
+async function startNativeScan() {
+  if (!('BarcodeDetector' in window)) throw new Error('This browser has no built-in barcode decoder.');
+  const supported = await BarcodeDetector.getSupportedFormats().catch(() => ['qr_code']);
+  const wanted = S.scanMode === 'serial'
+    ? ['code_128','code_39','code_93','codabar','ean_13','ean_8','upc_a','upc_e','itf','qr_code']
+    : ['qr_code'];
+  const formats = wanted.filter(f => supported.includes(f));
+  if (!formats.length) throw new Error('This browser does not support the required barcode format.');
+  S.nativeDetector = new BarcodeDetector({ formats });
+  S.nativeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+  const video = $('#scanVideo');
+  video.srcObject = S.nativeStream;
+  await video.play();
+  const tick = async () => {
+    if (!S.nativeStream || (!S.scanTarget && !S.scanField)) return;
+    try {
+      const codes = await S.nativeDetector.detect(video);
+      if (codes && codes.length && codes[0].rawValue) {
+        const value = codes[0].rawValue;
+        if (S.scanMode === 'serial' && S.scanField) {
+          S.scanField.value = value.trim();
+          S.scanField.dispatchEvent(new Event('input', { bubbles: true }));
+          toast('Barcode scanned: ' + value.trim(), 'success');
+        } else if (S.scanTarget) applyQR(S.scanTarget, value);
+        scanModal.hide();
+        return;
+      }
+    } catch (e) { /* wait for next frame */ }
+    S.nativeFrame = requestAnimationFrame(tick);
+  };
+  S.nativeFrame = requestAnimationFrame(tick);
+}
 async function startScan() {
   show($('#scanError'), false);
+  const video = $('#scanVideo');
   try {
-    S.reader = new ZXing.BrowserQRCodeReader();
-    await S.reader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } } }, 'scanVideo', result => {
-      if (result && S.scanTarget) { const t = S.scanTarget; scanModal.hide(); applyQR(t, result.getText()); }
-    });
+    try {
+      const lib = await ensureZXing();
+      if (S.scanMode === 'serial' && lib.BrowserMultiFormatReader) {
+        S.reader = new lib.BrowserMultiFormatReader();
+        await S.reader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } } }, 'scanVideo', result => {
+          if (result && S.scanField) {
+            S.scanField.value = result.getText().trim();
+            S.scanField.dispatchEvent(new Event('input', { bubbles: true }));
+            toast('Barcode scanned: ' + S.scanField.value, 'success');
+            scanModal.hide();
+          }
+        });
+      } else if (S.scanMode === 'khqr') {
+        S.reader = new lib.BrowserQRCodeReader();
+        await S.reader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } } }, 'scanVideo', result => {
+          if (result && S.scanTarget) { const t = S.scanTarget; scanModal.hide(); applyQR(t, result.getText()); }
+        });
+      } else {
+        await startNativeScan();
+      }
+    } catch (decoderError) {
+      await startNativeScan();
+    }
   } catch (e) {
-    $('#scanError').textContent = 'Camera is not available here. Close this and tap Upload instead.';
+    const msg = (e && e.name === 'NotAllowedError')
+      ? 'Camera permission was denied. Allow camera access for this site, then try again.'
+      : (e && (e.name === 'NotFoundError' || e.name === 'OverconstrainedError'))
+        ? 'No usable camera was found. Try another camera or use the barcode upload button.'
+        : 'Scanner could not start. Check camera permission and decoder availability.';
+    $('#scanError').textContent = msg;
     show($('#scanError'), true);
   }
 }
-function stopScan() { try { S.reader && S.reader.reset(); } catch (e) {} S.reader = null; }
+function stopScan() {
+  try { S.reader && S.reader.reset(); } catch (e) {}
+  S.reader = null;
+  if (S.nativeFrame) cancelAnimationFrame(S.nativeFrame);
+  S.nativeFrame = 0;
+  if (S.nativeStream) S.nativeStream.getTracks().forEach(t => t.stop());
+  S.nativeStream = null;
+  const video = $('#scanVideo');
+  if (video) { video.pause(); video.srcObject = null; }
+  S.scanField = null;
+}
+function openSerialScanner(input) {
+  S.scanMode = 'serial'; S.scanTarget = null; S.scanField = input;
+  $('#scanModalTitle').textContent = 'Scan Serial Number Barcode';
+  scanModal.show();
+}
+function openKHQRScanner(card) {
+  S.scanMode = 'khqr'; S.scanTarget = card; S.scanField = null;
+  $('#scanModalTitle').textContent = 'Scan KHQR';
+  scanModal.show();
+}
 $('#scanModal').addEventListener('shown.bs.modal', startScan);
 $('#scanModal').addEventListener('hidden.bs.modal', stopScan);
 
@@ -732,26 +836,40 @@ function scaledDataUrl(img, maxSide) {
   ctx.drawImage(img, 0, 0, c.width, c.height);
   return c.toDataURL('image/png');
 }
-async function decodeFile(card, file) {
+async function decodeFile(card, file, targetInput = null) {
   if (!file) return;
-  const btn = $('.btn-upload', card.el);
-  busy(btn, true, 'Reading…');
+  const btn = targetInput ? targetInput.closest('.serial-wrap').querySelector('.btn-serial-upload') : $('.btn-upload', card.el);
+  if (btn) busy(btn, true, 'Reading…');
   let text = null, loaded = null;
   try {
     loaded = await loadImage(file);
-    const reader = new ZXing.BrowserQRCodeReader();
-    // 1) original image, 2+) resized copies (helps with huge or tiny screenshots)
-    const sources = [loaded.url, () => scaledDataUrl(loaded.img, 1000), () => scaledDataUrl(loaded.img, 600), () => scaledDataUrl(loaded.img, 1600)];
-    for (const src of sources) {
-      try { text = (await reader.decodeFromImageUrl(typeof src === 'function' ? src() : src)).getText(); break; }
-      catch (e) { /* try next */ }
+    if ('BarcodeDetector' in window) {
+      try {
+        const supported = await BarcodeDetector.getSupportedFormats().catch(() => ['qr_code']);
+        const formats = targetInput ? ['code_128','code_39','code_93','codabar','ean_13','ean_8','upc_a','upc_e','itf','qr_code'] : ['qr_code'];
+        const detector = new BarcodeDetector({ formats: formats.filter(f => supported.includes(f)) });
+        const bitmap = await createImageBitmap(file);
+        try { const codes = await detector.detect(bitmap); if (codes && codes.length) text = codes[0].rawValue; }
+        finally { bitmap.close && bitmap.close(); }
+      } catch (e) { /* continue to ZXing fallback */ }
     }
-  } catch (e) { /* unreadable image */ }
+    if (!text) {
+      const lib = await ensureZXing();
+      const reader = targetInput && lib.BrowserMultiFormatReader ? new lib.BrowserMultiFormatReader() : new lib.BrowserQRCodeReader();
+      const sources = [loaded.url, () => scaledDataUrl(loaded.img, 1800), () => scaledDataUrl(loaded.img, 1200), () => scaledDataUrl(loaded.img, 700)];
+      for (const src of sources) {
+        try { text = (await reader.decodeFromImageUrl(typeof src === 'function' ? src() : src)).getText(); break; }
+        catch (e) { /* try next source */ }
+      }
+    }
+  } catch (e) { console.error('Barcode image decoding failed:', e); }
   if (loaded) URL.revokeObjectURL(loaded.url);
-  busy(btn, false);
-
-  if (text) applyQR(card, text);
-  else { markNoQR(card); toast('No QR code found in that image.', 'warning'); }
+  if (btn) busy(btn, false);
+  if (text && targetInput) {
+    targetInput.value = text.trim(); targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+    toast('Barcode scanned: ' + text.trim(), 'success');
+  } else if (text) applyQR(card, text);
+  else { if (!targetInput) markNoQR(card); toast('Could not read a barcode from this image. Use a clear, close-up photo with the code in focus.', 'warning'); }
 }
 
 /* ============================ Merchant cards ============================ */
@@ -772,8 +890,8 @@ function addMerchant() {
     '<div class="mb-3"><label class="form-label">Merchant name</label><input class="form-control f-name" placeholder="Auto-filled from KHQR"></div>' +
     '<div class="mb-3"><label class="form-label">MID</label><input class="form-control f-mid" inputmode="text" placeholder="Auto-filled from KHQR"></div>' +
     '<div class="mb-3 tid-wrap hidden"><label class="form-label">TID <span class="text-lowercase fw-normal">(terminal ID, required)</span></label><input class="form-control f-tid" autocapitalize="characters" autocomplete="off" placeholder="Auto-filled from KHQR, or type it"></div>' +
-    '<div class="mb-3 serial-wrap hidden"><label class="form-label">Old S/N</label><input class="form-control f-oldsn" placeholder="Old serial number"></div>' +
-    '<div class="mb-3 serial-wrap hidden"><label class="form-label">New S/N</label><input class="form-control f-newsn" placeholder="New serial number"></div>' +
+    '<div class="mb-3 serial-wrap hidden"><label class="form-label">Old S/N</label><div class="input-group"><input class="form-control f-oldsn" placeholder="Scan or enter old serial number"><button type="button" class="btn btn-soft btn-serial-scan" data-field="old" title="Scan old barcode"><i class="bi bi-upc-scan"></i></button><button type="button" class="btn btn-soft btn-serial-upload" data-field="old" title="Upload barcode image"><i class="bi bi-image"></i></button></div><input type="file" accept="image/*" class="serial-file-old hidden"></div>' +
+    '<div class="mb-3 serial-wrap hidden"><label class="form-label">New S/N</label><div class="input-group"><input class="form-control f-newsn" placeholder="Scan or enter new serial number"><button type="button" class="btn btn-soft btn-serial-scan" data-field="new" title="Scan new barcode"><i class="bi bi-upc-scan"></i></button><button type="button" class="btn btn-soft btn-serial-upload" data-field="new" title="Upload barcode image"><i class="bi bi-image"></i></button></div><input type="file" accept="image/*" class="serial-file-new hidden"></div>' +
     '<div class="mb-3 phone-wrap hidden"><label class="form-label">Phone number</label><input class="form-control f-phone" inputmode="tel" placeholder="Contact phone number"></div>' +
     '<div class="mb-3 tag-wrap hidden"><label class="form-label">Tag</label><input class="form-control f-tag" placeholder="Additional tag / remark"></div>' +
     '<div class="small text-muted location-line mb-2"><i class="bi bi-geo-alt"></i> Location is captured when photo stamping is enabled.</div>' +
@@ -798,7 +916,11 @@ function addMerchant() {
   applyType(card);
   $('.f-act', el).addEventListener('change', () => { updateDateLabel(card); updateActivityFields(card); $$('.activity-option', el).forEach(b=>b.classList.toggle('active', b.dataset.activity === $('.f-act', el).value)); });
 
-  $('.btn-scan', el).onclick = () => { S.scanTarget = card; scanModal.show(); };
+  $('.btn-scan', el).onclick = () => openKHQRScanner(card);
+  $$('.btn-serial-scan', el).forEach(btn => btn.onclick = () => openSerialScanner(btn.dataset.field === 'old' ? $('.f-oldsn', el) : $('.f-newsn', el)));
+  $$('.btn-serial-upload', el).forEach(btn => btn.onclick = () => $(btn.dataset.field === 'old' ? '.serial-file-old' : '.serial-file-new', el).click());
+  $('.serial-file-old', el).onchange = async e => { await decodeFile(card, e.target.files[0], $('.f-oldsn', el)); e.target.value = ''; };
+  $('.serial-file-new', el).onchange = async e => { await decodeFile(card, e.target.files[0], $('.f-newsn', el)); e.target.value = ''; };
   $('.btn-upload', el).onclick = () => $('.qr-file', el).click();
   $('.qr-file', el).onchange = async e => { await decodeFile(card, e.target.files[0]); e.target.value = ''; };
   $('.btn-photo', el).onclick = () => $('.photo-file', el).click();
@@ -1026,7 +1148,7 @@ $('#submitBtn').addEventListener('click', async () => {
     const activity = g('.f-act'), rule = ACTIVITY_FIELD_RULES[curType + '|' + activity] || {};
     if ((rule.phoneRequired || ($('.phone-wrap', c.el) && !$('.phone-wrap', c.el).classList.contains('hidden') && rule.phoneShow === true && rule.phoneRequired === true)) && !g('.f-phone')) { toast('Merchant ' + (i + 1) + ': enter the phone number.', 'danger'); $('.f-phone', c.el).focus(); return; }
     if (rule.tagRequired && !g('.f-tag')) { toast('Merchant ' + (i + 1) + ': enter the Tag.', 'danger'); $('.f-tag', c.el).focus(); return; }
-    if (['Replace','Replacement','Device Replacement'].includes(activity) && (!g('.f-oldsn') || !g('.f-newsn'))) { toast('Merchant ' + (i + 1) + ': enter both Old S/N and New S/N.', 'danger'); return; }
+    if (['Replace','Replacement','Device Replacement','Battery Replacement','Change Battery'].includes(activity) && (!g('.f-oldsn') || !g('.f-newsn'))) { toast('Merchant ' + (i + 1) + ': scan or enter both Old S/N and New S/N.', 'danger'); return; }
     const remarks = [g('.f-rem'), g('.f-tag') ? 'Tag: ' + g('.f-tag') : '', g('.f-phone') ? 'Phone: ' + g('.f-phone') : '', g('.f-oldsn') ? 'Old S/N: ' + g('.f-oldsn') : '', g('.f-newsn') ? 'New S/N: ' + g('.f-newsn') : ''].filter(Boolean).join(' | ');
     items.push({ type: curType, activity, tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: g('.f-biz') || 'N/A', merchant: g('.f-name'), mid: g('.f-mid'), remarks, phone: g('.f-phone'), tag: g('.f-tag'), oldSN: g('.f-oldsn'), newSN: g('.f-newsn'), location: (geo.pos ? coordText(geo.pos) : ''), address: (geo.place ? [geo.place.street, geo.place.city].filter(Boolean).join(', ') : ''), photos: c.photos });
   }
