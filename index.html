@@ -396,41 +396,34 @@
   </div>
 </div>
 
-<!-- Photo stamp settings -->
+<!-- Photo overlay settings -->
 <div class="modal fade" id="stampModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:20px">
-      <div class="modal-header border-0 pb-0">
-        <h6 class="modal-title fw-bold"><i class="bi bi-geo-alt me-1"></i>Photo stamp</h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content" style="border-radius:20px">
+    <div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold"><i class="bi bi-image me-1"></i>Photo overlay settings</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <canvas id="stampPrev" width="640" height="400" style="width:100%;border-radius:12px;display:block" aria-label="Overlay preview"></canvas>
+      <div class="row g-2 mt-2">
+        <div class="col-6 col-md-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="stTimestamp"><label class="form-check-label" for="stTimestamp">Timestamp</label></div></div>
+        <div class="col-6 col-md-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="stGps"><label class="form-check-label" for="stGps">GPS coordinates</label></div></div>
+        <div class="col-6 col-md-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="stAddress"><label class="form-check-label" for="stAddress">Address</label></div></div>
+        <div class="col-6 col-md-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="stMap"><label class="form-check-label" for="stMap">Map</label></div></div>
+        <div class="col-6 col-md-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="stLabel"><label class="form-check-label" for="stLabel">Label</label></div></div>
+        <div class="col-6 col-md-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="stLogo"><label class="form-check-label" for="stLogo">Logo</label></div></div>
+        <div class="col-6 col-md-4"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="stUsername"><label class="form-check-label" for="stUsername">Username</label></div></div>
       </div>
-      <div class="modal-body">
-        <canvas id="stampPrev" width="480" height="640" style="width:100%;max-width:300px;margin:0 auto;border-radius:12px;display:block" aria-label="Stamp preview"></canvas>
-        <div class="fw-semibold small mt-3 mb-1">Show on photo</div>
-        <div class="row g-1">
-          <div class="col-6"><div class="form-check form-switch"><input class="form-check-input st-opt" type="checkbox" role="switch" id="stLogo" data-k="logo"><label class="form-check-label" for="stLogo">Logo</label></div></div>
-          <div class="col-6"><div class="form-check form-switch"><input class="form-check-input st-opt" type="checkbox" role="switch" id="stMap" data-k="map"><label class="form-check-label" for="stMap">Map view</label></div></div>
-          <div class="col-6"><div class="form-check form-switch"><input class="form-check-input st-opt" type="checkbox" role="switch" id="stTitleOn" data-k="title"><label class="form-check-label" for="stTitleOn">Title</label></div></div>
-          <div class="col-6"><div class="form-check form-switch"><input class="form-check-input st-opt" type="checkbox" role="switch" id="stTime" data-k="time"><label class="form-check-label" for="stTime">Date &amp; time</label></div></div>
-          <div class="col-6"><div class="form-check form-switch"><input class="form-check-input st-opt" type="checkbox" role="switch" id="stCoords" data-k="coords"><label class="form-check-label" for="stCoords">GPS numbers</label></div></div>
-          <div class="col-6"><div class="form-check form-switch"><input class="form-check-input st-opt" type="checkbox" role="switch" id="stAddr" data-k="addr"><label class="form-check-label" for="stAddr">Address</label></div></div>
-        </div>
-        <div class="small text-muted mt-1 mb-3">Map, GPS and address need location permission and internet.</div>
-        <label class="form-label">Title text <span class="text-muted">(shown as #title)</span></label>
-        <input id="stTitle" class="form-control" maxlength="40" placeholder="e.g. Merchant Support SR">
-        <label class="form-label mt-3">Logo (top-right)</label>
-        <div class="d-flex gap-2 align-items-center">
-          <label class="btn btn-soft btn-sm mb-0"><i class="bi bi-image me-1"></i>Choose logo<input id="stLogoFile" type="file" accept="image/*" hidden></label>
-          <button type="button" class="btn btn-soft btn-sm" id="stLogoClear">Remove</button>
-        </div>
-        <div class="small text-muted mt-1" id="stLogoNote"></div>
+      <div class="row g-3 mt-1">
+        <div class="col-md-6"><label class="form-label" for="stTitle">Label text</label><input id="stTitle" class="form-control" maxlength="80" placeholder="#Merchant Support SR"></div>
+        <div class="col-md-6"><label class="form-label" for="stTimezone">Timezone</label><input id="stTimezone" class="form-control" value="Asia/Phnom_Penh"></div>
+        <div class="col-md-6"><label class="form-label" for="stTextPos">Text position</label><select id="stTextPos" class="form-select"><option>Top left</option><option>Top right</option><option>Bottom left</option><option>Bottom right</option><option>Center</option></select></div>
+        <div class="col-md-6"><label class="form-label" for="stMapPos">Map position</label><select id="stMapPos" class="form-select"><option>Top left</option><option>Top right</option><option>Bottom left</option><option>Bottom right</option></select></div>
+        <div class="col-md-6"><label class="form-label" for="stFont">Font size (px)</label><input id="stFont" class="form-control" type="number" min="10" max="48" value="24"></div>
+        <div class="col-md-6"><label class="form-label" for="stOpacity">Text opacity (%)</label><input id="stOpacity" class="form-control" type="number" min="0" max="100" value="100"></div>
       </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-brand px-4" id="stSave">Save</button>
-      </div>
+      <div id="stAdminNote" class="small text-muted mt-3">Only administrators can save shared settings. GPS/address need location permission and internet access.</div>
+      <div id="stMapNote" class="small text-warning mt-1">Map and logo toggles are stored for configuration; a map tile/logo image is not currently available in this app to render on photos.</div>
     </div>
-  </div>
+    <div class="modal-footer border-0 pt-0"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-brand px-4" id="stSave">Save settings</button></div>
+  </div></div>
 </div>
 
 <!-- Install help -->
@@ -519,7 +512,7 @@ function setType(t) {
 }
 
 // Paste your Apps Script Web app URL (ends with /exec) here:
-const API_URL = 'https://script.google.com/macros/s/AKfycbyOFQ7a2-s8IHix3OG3Pv1V7atlUKO2ZbktFTCQUglX_qVKRvJ840-3EM9EKSMBX3Mo/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwhi5sYjBirAV5CgdwyMYUHY0E2VK_k4jjV2C3myh-ruC27IiotLxWZ3EP-kRwtvz-HfA/exec';
 
 async function api(fn, ...args) {
   let json;
@@ -594,8 +587,8 @@ function showApp() {
   if (!S.cards.length) addMerchant();
   setType(curType);
   switchTab('new');
-  loadSummary(); loadLast();
-  if (stampOn && needGeo()) refreshGeo(10000);
+  loadSummary(); loadLast(); loadOverlaySettings();
+  if (stampOn && stampGeo) refreshGeo(10000);
 }
 
 function logout(silent) {
@@ -789,7 +782,7 @@ function addMerchant() {
   $('.cam-file', el).onchange = async e => { await addPhotos(card, Array.from(e.target.files), true); e.target.value = ''; };
   $('.stamp-link', el).onclick = openStampSettings;
   const sw = $('.stamp-sw', el); sw.checked = stampOn;
-  $('.btn-cam', el).addEventListener('click', () => { if (stampOn && needGeo()) refreshGeo(10000); });   // warm up GPS while the camera opens
+  $('.btn-cam', el).addEventListener('click', () => { if (stampOn && stampGeo) refreshGeo(10000); });   // warm up GPS while the camera opens
   sw.addEventListener('change', () => { stampOn = sw.checked; store.set('it_stamp', stampOn ? '1' : '0'); $$('.stamp-sw').forEach(x => { x.checked = stampOn; }); });
   $('.btn-remove', el).onclick = () => {
     if (S.cards.length === 1) { toast('At least one merchant is required.', 'warning'); return; }
@@ -818,39 +811,31 @@ $('#addMerchantBtn').addEventListener('click', () => {
 });
 
 /* ---- photos ---- */
-/* ---- photo stamp: settings (all remembered on this phone) ---- */
-const STAMP_DEF = { logo: true, map: true, title: true, time: true, coords: true, addr: true, titleText: 'Merchant Support', logoData: '' };
 let stampOn = store.get('it_stamp') !== '0';          // on by default; remembered
-let stampCfg = (() => {
-  let c = {}; try { c = JSON.parse(store.get('it_stamp_cfg') || '{}') || {}; } catch (e) {}
-  const old = store.get('it_stamp_title'); if (c.titleText === undefined && old !== null) c.titleText = old;
-  if (c.coords === undefined && store.get('it_stamp_geo') === '0') { c.coords = false; c.addr = false; c.map = false; }
-  return Object.assign({}, STAMP_DEF, c);
-})();
-const saveStampCfg = () => store.set('it_stamp_cfg', JSON.stringify(stampCfg));
-const needGeo = () => stampCfg.coords || stampCfg.addr || stampCfg.map;
+let stampGeo = store.get('it_stamp_geo') !== '0';       // GPS + address on the stamp
+let stampTitle = store.get('it_stamp_title'); if (stampTitle === null) stampTitle = '#Merchant Support SR';
+let overlaySettings = { timestamp:true, gps:true, address:true, map:true, label:true, logo:true, username:false, labelText:'#Merchant Support SR', textPosition:'Bottom right', mapPosition:'Bottom left', fontSize:24, textOpacity:100, timezone:'Asia/Phnom_Penh' };
+let overlaySettingsLoaded = false;
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const p2 = n => String(n).padStart(2, '0');
-/** "Oct 21, 2026 8:14:34 PM" */
+/** "Oct 14, 2026 at 2:31:55 PM" */
 function stampDateTime(ms) {
-  const d = new Date(ms || Date.now()), h12 = d.getHours() % 12 || 12;
-  return MON[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' ' + h12 + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds()) + ' ' + (d.getHours() < 12 ? 'AM' : 'PM');
+  const d = new Date(ms || Date.now());
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: (overlaySettings && overlaySettings.timezone) || 'Asia/Phnom_Penh', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }).formatToParts(d);
+    const v = {}; parts.forEach(p => { if (p.type !== 'literal') v[p.type] = p.value; });
+    return v.month + ' ' + v.day + ', ' + v.year + ' at ' + v.hour + ':' + v.minute + ':' + v.second + ' ' + v.dayPeriod;
+  } catch (e) {
+    const h12 = d.getHours() % 12 || 12;
+    return MON[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' at ' + h12 + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds()) + ' ' + (d.getHours() < 12 ? 'AM' : 'PM');
+  }
 }
-/** "13.36813 103.83870666666665" – plain decimals, like the sample */
-const coordText = p => +p.lat.toFixed(6) + ' ' + +p.lon.toFixed(6);
-/** Open Location (Plus) Code, 11 digits, first 4 dropped ("9R9Q+6M2") */
-function plusCode(lat, lon) {
-  const A = '23456789CFGHJMPQRVWX';
-  let la = Math.floor((Math.min(90, Math.max(-90, lat)) + 90) * 40000 + 1e-7), lo = Math.floor((((lon + 180) % 360 + 360) % 360) * 32000 + 1e-7);
-  let out = A[(la % 5) * 4 + (lo % 4)]; la = Math.floor(la / 5); lo = Math.floor(lo / 4);
-  const pairs = [];
-  for (let i = 0; i < 5; i++) { pairs.unshift(A[lo % 20]); pairs.unshift(A[la % 20]); la = Math.floor(la / 20); lo = Math.floor(lo / 20); }
-  const full = pairs.join('');                       // 10 digits
-  return full.slice(4, 8) + '+' + full.slice(8) + out;
-}
+const signed = (n, dp) => (n < 0 ? '-' : '+') + Math.abs(n).toFixed(dp);
+/** "+13.418164,+103.859257 ±4.41m" */
+const coordText = p => signed(p.lat, 6) + ',' + signed(p.lon, 6) + ' ±' + p.acc.toFixed(2) + 'm';
 
-/* ---- GPS + address + map tile, cached while you stay in the same spot ---- */
-const geo = { pos: null, place: null, key: '', lookup: null, map: null, mapKey: '', mapLookup: null };
+/* ---- GPS + address (street / city), cached while you stay in the same spot ---- */
+const geo = { pos: null, place: null, key: '', lookup: null };
 function readPosition(timeout) {
   return new Promise(res => {
     if (!navigator.geolocation) return res(null);
@@ -870,115 +855,56 @@ function lookupPlace(p) {
       const a = j.address || {};
       const street = a.road || a.pedestrian || a.amenity || a.suburb || a.neighbourhood || a.village || '';
       const city = a.city || a.town || a.municipality || a.county || String(a.state || '').replace(/ Province$/i, '');
-      geo.place = { street, city, country: a.country || '' };
+      geo.place = { street, city };
     }).catch(() => { geo.place = null; geo.key = ''; }).then(() => { if (timer) clearTimeout(timer); });
   return geo.lookup;
 }
-/** Small square street-map picture around the point with a red pin (OpenStreetMap tiles). null if offline. */
-function loadMap(p) {
-  const key = p.lat.toFixed(4) + ',' + p.lon.toFixed(4);
-  if (key === geo.mapKey) return geo.mapLookup;
-  geo.mapKey = key; geo.map = null;
-  const Z = 17, n = Math.pow(2, Z);
-  const fx = (p.lon + 180) / 360 * n, lr = p.lat * Math.PI / 180;
-  const fy = (1 - Math.log(Math.tan(lr) + 1 / Math.cos(lr)) / Math.PI) / 2 * n;
-  const tx = Math.floor(fx), ty = Math.floor(fy), T = 256;
-  const tile = (dx, dy) => new Promise(res => {
-    const im = new Image(); im.crossOrigin = 'anonymous';
-    const t = setTimeout(() => res(null), 6000);
-    im.onload = () => { clearTimeout(t); res(im); }; im.onerror = () => { clearTimeout(t); res(null); };
-    im.src = 'https://tile.openstreetmap.org/' + Z + '/' + (tx + dx) + '/' + (ty + dy) + '.png';
-  });
-  const jobs = []; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) jobs.push(tile(dx, dy).then(im => ({ dx, dy, im })));
-  geo.mapLookup = Promise.all(jobs).then(list => {
-    if (!list.some(o => o.im)) { geo.mapKey = ''; return null; }
-    const S3 = T * 3, cv = document.createElement('canvas'); cv.width = cv.height = 256;
-    const x = cv.getContext('2d'); x.fillStyle = '#e8e4dc'; x.fillRect(0, 0, 256, 256);
-    const cx = (fx - tx + 1) * T, cy = (fy - ty + 1) * T;       // point inside the 3x3 mosaic
-    list.forEach(o => { if (o.im) x.drawImage(o.im, (o.dx + 1) * T - cx + 128, (o.dy + 1) * T - cy + 128); });
-    // red pin
-    x.fillStyle = '#ea4335'; x.strokeStyle = '#a52714'; x.lineWidth = 3;
-    x.beginPath(); x.arc(128, 112, 20, Math.PI * 0.8, Math.PI * 0.2, false); x.lineTo(128, 150); x.closePath(); x.fill(); x.stroke();
-    x.fillStyle = '#7b1a10'; x.beginPath(); x.arc(128, 112, 7, 0, 7); x.fill();
-    geo.map = cv; return cv;
-  }).catch(() => { geo.mapKey = ''; return null; });
-  return geo.mapLookup;
-}
 async function refreshGeo(timeout) {
-  if (!needGeo()) return null;
+  if (!stampGeo) return null;
   const p = await readPosition(timeout);
-  if (p) { geo.pos = p; if (stampCfg.addr) lookupPlace(p); if (stampCfg.map) loadMap(p); }
+  if (p) { geo.pos = p; lookupPlace(p); }
   return geo.pos;
 }
-const logoImg = { src: '', img: null };
-function getLogo() {
-  if (!stampCfg.logoData) return Promise.resolve(null);
-  if (logoImg.src === stampCfg.logoData && logoImg.img) return Promise.resolve(logoImg.img);
-  return new Promise(res => { const im = new Image(); im.onload = () => { logoImg.src = stampCfg.logoData; logoImg.img = im; res(im); }; im.onerror = () => res(null); im.src = stampCfg.logoData; });
-}
-/** Everything one stamp needs (the time is filled in per photo). */
-async function stampData() {
-  const d = { title: '', time: stampCfg.time, coords: '', addr: '', map: null, logo: null };
-  if (stampCfg.title && stampCfg.titleText) d.title = '#' + stampCfg.titleText;
-  if (stampCfg.logo) d.logo = await getLogo();
-  if (needGeo()) {
+/** Lines of the stamp, top to bottom (the first line is replaced per photo with that photo's time). */
+async function stampLines() {
+  const cfg = overlaySettings || {};
+  const lines = [];
+  if (cfg.timestamp !== false) lines.push(stampDateTime(Date.now()));
+  if (cfg.gps !== false || cfg.address !== false) {
     let p = geo.pos && Date.now() - geo.pos.t < 120000 ? geo.pos : await refreshGeo(8000);
     p = p || geo.pos;
-    if (p) {
-      if (stampCfg.coords) d.coords = coordText(p);
-      if (stampCfg.addr) {
-        try { await geo.lookup; } catch (e) {}
-        const pl = geo.place;
-        d.addr = [plusCode(p.lat, p.lon), pl && pl.street, pl && pl.city, pl && pl.country].filter(Boolean).join(', ');
-      }
-      if (stampCfg.map) { try { d.map = await geo.mapLookup; } catch (e) {} }
+    if (p && cfg.gps !== false) lines.push(coordText(p));
+    if (p && cfg.address !== false) {
+      try { await geo.lookup; } catch (e) {}
+      if (geo.place && geo.place.street) lines.push(geo.place.street);
+      if (geo.place && geo.place.city) lines.push(geo.place.city);
     }
   }
-  return d;
+  if (cfg.username && S.user && S.user.username) lines.push(S.user.username.toUpperCase());
+  if (cfg.label !== false && cfg.labelText) lines.push(cfg.labelText);
+  return lines.length ? lines : [' '];
 }
 
-/** Sample layout: logo top-right, map bottom-left, white right-aligned text bottom-right. Wraps long lines. */
-function drawStamp(ctx, w, h, d, ms) {
-  const base = Math.min(w, h);
-  let fs = Math.max(13, Math.round(base * 0.034));
-  const font = s => '600 ' + s + 'px -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-  const mx = Math.round(w * 0.035), my = Math.round(base * 0.03);
-  const mapS = d.map ? Math.round(base * 0.2) : 0, gap = d.map ? Math.round(base * 0.02) : 0;
-  const maxW = w - mx * 2 - mapS - gap;
-  const raw = [];
-  if (d.title) raw.push(d.title);
-  if (d.time) raw.push(stampDateTime(ms));
-  if (d.coords) raw.push(d.coords);
-  if (d.addr) raw.push(d.addr);
-  ctx.save();
+/** White text with a soft shadow, right-aligned in the bottom-right corner. */
+function drawStamp(ctx, w, h, lines) {
+  const cfg = overlaySettings || {};
+  let fs = Math.max(10, Math.min(48, Number(cfg.fontSize) || 24));
+  // Settings are CSS pixels; scale proportionally to the processed image width.
+  fs = Math.round(fs * w / 640);
+  const font = n => '600 ' + n + 'px -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
   ctx.font = font(fs);
-  const wrap = t => {                       // break on spaces so nothing runs off the photo
-    const words = t.split(' '), out = []; let cur = '';
-    words.forEach(wd => { const t2 = cur ? cur + ' ' + wd : wd; if (cur && ctx.measureText(t2).width > maxW) { out.push(cur); cur = wd; } else cur = t2; });
-    if (cur) out.push(cur); return out;
-  };
-  const lines = []; raw.forEach(t => wrap(t).forEach(x => lines.push(x)));
-  const lh = Math.round(fs * 1.25);
-  // logo, top-right, in a white rounded box
-  if (d.logo) {
-    const bh = Math.round(base * 0.1), bw0 = d.logo.width / d.logo.height * (bh * 0.7), pad = Math.round(bh * 0.15);
-    const bw = Math.min(Math.round(w * 0.4), Math.round(bw0 + pad * 2)), ih = bh - pad * 2, iw = Math.min(bw - pad * 2, ih * d.logo.width / d.logo.height);
-    const x0 = w - mx - bw, y0 = my;
-    ctx.fillStyle = '#fff'; ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(x0, y0, bw, bh, pad) : ctx.rect(x0, y0, bw, bh)); ctx.fill();
-    ctx.drawImage(d.logo, x0 + (bw - iw) / 2, y0 + (bh - iw * d.logo.height / d.logo.width) / 2, iw, iw * d.logo.height / d.logo.width);
-  }
-  // map thumbnail, bottom-left
-  if (d.map) {
-    const x0 = mx, y0 = h - my - mapS;
-    ctx.save(); ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(x0, y0, mapS, mapS, mapS * 0.06) : ctx.rect(x0, y0, mapS, mapS)); ctx.clip();
-    ctx.drawImage(d.map, x0, y0, mapS, mapS); ctx.restore();
-    ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = Math.max(1.5, base * 0.003);
-    ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(x0, y0, mapS, mapS, mapS * 0.06) : ctx.rect(x0, y0, mapS, mapS)); ctx.stroke();
-  }
-  ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
-  ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = Math.max(2, fs * 0.16); ctx.shadowOffsetY = Math.max(1, fs * 0.04);
-  ctx.fillStyle = '#ffffff';
-  lines.forEach((t, i) => ctx.fillText(t, w - mx, h - my - fs * 0.2 - (lines.length - 1 - i) * lh));
+  const widest = Math.max.apply(null, lines.map(t => ctx.measureText(t).width));
+  const maxW = w * 0.92 - fs;
+  if (widest > maxW) { fs = Math.max(10, Math.floor(fs * maxW / widest)); ctx.font = font(fs); }
+  const lh = Math.round(fs * 1.22), mx = Math.round(w * 0.04), my = Math.round(fs * 1.1);
+  const pos = cfg.textPosition || 'Bottom right';
+  ctx.save(); ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = pos.endsWith('left') ? 'left' : pos === 'Center' ? 'center' : 'right';
+  ctx.shadowColor = 'rgba(0,0,0,0.65)'; ctx.shadowBlur = Math.max(2, fs * 0.14); ctx.shadowOffsetX = 0; ctx.shadowOffsetY = Math.max(1, fs * 0.04);
+  ctx.fillStyle = 'rgba(255,255,255,' + (Math.max(0,Math.min(100,Number(cfg.textOpacity ?? 100))/100)) + ')';
+  const x = pos.endsWith('left') ? mx : pos === 'Center' ? w/2 : w-mx;
+  const top = pos.startsWith('Top') ? my + fs : h - my - (lines.length - 1) * lh;
+  lines.forEach((t, i) => ctx.fillText(t, x, top + i * lh));
   ctx.restore();
 }
 function compress(file, opts) {
@@ -992,7 +918,7 @@ function compress(file, opts) {
       const c = document.createElement('canvas'); c.width = w; c.height = h;
       const ctx = c.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      if (opts.stamp && opts.data) drawStamp(ctx, w, h, opts.data, file.lastModified || Date.now());
+      if (opts.stamp) drawStamp(ctx, w, h, opts.lines && opts.lines.length ? opts.lines : [stampDateTime(file.lastModified)]);
       URL.revokeObjectURL(url);
       resolve(c.toDataURL('image/jpeg', q));
     };
@@ -1009,10 +935,12 @@ async function addPhotos(card, files, fromCamera) {
   const doStamp = !!(fromCamera && stampOn);
   const prog = $('.prog', card.el), bar = $('.progress-bar', card.el);
   show(prog, true); prog.style.display = 'flex'; bar.style.width = '5%';
-  const sd = doStamp ? await stampData() : null;       // GPS can take a few seconds the first time
+  const baseLines = doStamp ? await stampLines() : null;       // GPS can take a few seconds the first time
   for (let i = 0; i < files.length; i++) {
     try {
-      card.photos.push(await compress(files[i], { stamp: doStamp, data: sd }));   // each photo keeps its own time
+      let lines = null;
+      if (baseLines) { lines = baseLines.slice(); lines[0] = stampDateTime(files[i].lastModified || Date.now()); }   // each photo keeps its own time
+      card.photos.push(await compress(files[i], { stamp: doStamp, lines }));
     } catch (e) { toast('Skipped an unreadable photo.', 'warning'); }
     bar.style.width = Math.round(((i + 1) / files.length) * 100) + '%';
   }
@@ -1298,66 +1226,59 @@ $('#tgTest').addEventListener('click', async () => {
   busy(btn, false);
 });
 
-/* ============================ Photo stamp settings ============================ */
+/* ============================ Photo overlay settings ============================ */
 const stampModal = new bootstrap.Modal($('#stampModal'));
-let stDraft = null;
-function previewMap() {
-  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
-  x.fillStyle = '#ece8df'; x.fillRect(0, 0, 256, 256);
-  x.fillStyle = '#fff'; x.fillRect(0, 110, 256, 22); x.fillRect(120, 0, 18, 256);
-  x.fillStyle = '#cfe3c6'; x.fillRect(10, 150, 90, 80);
-  x.fillStyle = '#ea4335'; x.beginPath(); x.arc(128, 112, 20, Math.PI * 0.8, Math.PI * 0.2, false); x.lineTo(128, 150); x.closePath(); x.fill();
-  x.fillStyle = '#7b1a10'; x.beginPath(); x.arc(128, 112, 7, 0, 7); x.fill();
-  return c;
+const overlayFields = { timestamp:'stTimestamp', gps:'stGps', address:'stAddress', map:'stMap', label:'stLabel', logo:'stLogo', username:'stUsername' };
+function readOverlayForm() {
+  const out = {};
+  Object.keys(overlayFields).forEach(k => out[k] = $('#' + overlayFields[k]).checked);
+  out.labelText = $('#stTitle').value.trim().slice(0,80);
+  out.textPosition = $('#stTextPos').value; out.mapPosition = $('#stMapPos').value;
+  out.fontSize = Math.max(10,Math.min(48,Number($('#stFont').value)||24));
+  out.textOpacity = Math.max(0,Math.min(100,Number($('#stOpacity').value)||0));
+  out.timezone = $('#stTimezone').value.trim() || 'Asia/Phnom_Penh';
+  return out;
 }
-async function drawStampPreview() {
-  const cv = $('#stampPrev'), x = cv.getContext('2d'), w = cv.width, hh = cv.height, c = stDraft;
-  const g = x.createLinearGradient(0, 0, w, hh); g.addColorStop(0, '#8a97a8'); g.addColorStop(1, '#3a4658');
+function fillOverlayForm(cfg) {
+  Object.keys(overlayFields).forEach(k => $('#' + overlayFields[k]).checked = !!cfg[k]);
+  $('#stTitle').value = cfg.labelText || ''; $('#stTextPos').value = cfg.textPosition || 'Bottom right';
+  $('#stMapPos').value = cfg.mapPosition || 'Bottom left'; $('#stFont').value = cfg.fontSize || 24;
+  $('#stOpacity').value = cfg.textOpacity == null ? 100 : cfg.textOpacity; $('#stTimezone').value = cfg.timezone || 'Asia/Phnom_Penh';
+  const admin = !!(S.user && S.user.role === 'Admin');
+  $('#stSave').hidden = !admin; $('#stAdminNote').textContent = admin ? 'Changes are shared with all users and stored in the OverlaySettings Google Sheet.' : 'Read-only shared settings. Contact an administrator to change them.';
+  ['stTimestamp','stGps','stAddress','stMap','stLabel','stLogo','stUsername','stTitle','stTextPos','stMapPos','stFont','stOpacity','stTimezone'].forEach(id => { $('#' + id).disabled = !admin; });
+}
+async function loadOverlaySettings() {
+  if (!S.token) return;
+  try { overlaySettings = await api('getOverlaySettings', S.token); overlaySettingsLoaded = true; stampGeo = overlaySettings.gps || overlaySettings.address; stampTitle = overlaySettings.labelText || ''; }
+  catch (e) { /* use defaults if server is not yet updated */ }
+}
+function drawStampPreview() {
+  const cv = $('#stampPrev'), x = cv.getContext('2d'), w = cv.width, hh = cv.height;
+  const g = x.createLinearGradient(0, 0, w, hh); g.addColorStop(0, '#6b7a8f'); g.addColorStop(1, '#2f3b4c');
   x.fillStyle = g; x.fillRect(0, 0, w, hh);
-  let logo = null;
-  if (c.logo) {
-    if (c.logoData) { logo = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.onerror = () => r(null); im.src = c.logoData; }); }
-    else { const lc = document.createElement('canvas'); lc.width = 200; lc.height = 80; const lx = lc.getContext('2d'); lx.fillStyle = '#9aa5b4'; lx.font = '700 40px sans-serif'; lx.textAlign = 'center'; lx.textBaseline = 'middle'; lx.fillText('LOGO', 100, 42); logo = lc; }
-  }
-  const lat = 13.36813, lon = 103.838707;
-  drawStamp(x, w, hh, {
-    title: c.title && c.titleText ? '#' + c.titleText : '', time: c.time,
-    coords: c.coords ? coordText({ lat, lon }) : '',
-    addr: c.addr ? plusCode(lat, lon) + ', Ring Road, Krong Siem Reap, Cambodia' : '',
-    map: c.map ? previewMap() : null, logo
-  }, Date.now());
+  const previous = overlaySettings; overlaySettings = readOverlayForm();
+  const lines = [];
+  if (overlaySettings.timestamp) lines.push('Oct 22, 2026 at 2:31:55 PM');
+  if (overlaySettings.gps) lines.push('+13.418164,+103.859257 ±4.41m');
+  if (overlaySettings.address) lines.push('Street name', 'Phnom Penh');
+  if (overlaySettings.username) lines.push((S.user ? S.user.username : 'Your name').toUpperCase());
+  if (overlaySettings.label && overlaySettings.labelText) lines.push(overlaySettings.labelText);
+  drawStamp(x, w, hh, lines.length ? lines : [' ']); overlaySettings = previous;
 }
-function readStampForm() {
-  $$('.st-opt').forEach(el => { stDraft[el.dataset.k] = el.checked; });
-  stDraft.titleText = $('#stTitle').value.trim().slice(0, 40);
-}
-function openStampSettings() {
-  stDraft = Object.assign({}, stampCfg);
-  $$('.st-opt').forEach(el => { el.checked = !!stDraft[el.dataset.k]; });
-  $('#stTitle').value = stDraft.titleText;
-  $('#stLogoNote').textContent = stDraft.logoData ? 'Your logo is set.' : 'No logo chosen yet. Pick an image (PNG with a transparent background works best).';
-  drawStampPreview(); stampModal.show();
-}
-$$('.st-opt').forEach(el => el.addEventListener('change', () => { readStampForm(); drawStampPreview(); }));
-$('#stTitle').addEventListener('input', () => { readStampForm(); drawStampPreview(); });
-$('#stLogoFile').addEventListener('change', e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-  const url = URL.createObjectURL(f), im = new Image();
-  im.onload = () => {
-    const r = Math.min(1, 400 / Math.max(im.width, im.height)), c = document.createElement('canvas');
-    c.width = Math.round(im.width * r); c.height = Math.round(im.height * r);
-    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
-    stDraft.logoData = c.toDataURL('image/png'); stDraft.logo = true; $('#stLogo').checked = true;
-    $('#stLogoNote').textContent = 'Logo ready. Press Save to keep it.'; drawStampPreview();
-  };
-  im.onerror = () => { URL.revokeObjectURL(url); toast('That image could not be read.', 'warning'); };
-  im.src = url;
-});
-$('#stLogoClear').addEventListener('click', () => { stDraft.logoData = ''; $('#stLogoNote').textContent = 'Logo removed. Press Save to keep this.'; drawStampPreview(); });
-$('#stSave').addEventListener('click', () => {
-  readStampForm(); stampCfg = Object.assign({}, STAMP_DEF, stDraft); saveStampCfg();
-  stampModal.hide(); toast('Photo stamp saved.', 'success');
-  if (stampOn && needGeo()) refreshGeo(10000);
+function openStampSettings() { fillOverlayForm(overlaySettings); drawStampPreview(); stampModal.show(); }
+Object.values(overlayFields).forEach(id => $('#' + id).addEventListener('change', drawStampPreview));
+['stTitle','stTextPos','stMapPos','stFont','stOpacity','stTimezone'].forEach(id => $('#' + id).addEventListener('input', drawStampPreview));
+$('#stSave').addEventListener('click', async () => {
+  const btn = $('#stSave'); busy(btn, true, 'Saving…');
+  try {
+    const cfg = readOverlayForm(); overlaySettings = await api('saveOverlaySettings', S.token, cfg);
+    overlaySettingsLoaded = true; stampGeo = cfg.gps || cfg.address; stampTitle = cfg.labelText;
+    store.set('it_stamp_geo', stampGeo ? '1' : '0'); store.set('it_stamp_title', stampTitle);
+    stampModal.hide(); toast('Shared photo overlay settings saved.', 'success');
+    if (stampOn && stampGeo) refreshGeo(10000);
+  } catch (e) { toast(e.message || 'Could not save settings.', 'danger'); }
+  busy(btn, false);
 });
 
 /* ============================ Last record + edit ============================ */
