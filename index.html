@@ -149,7 +149,8 @@
     :root[data-theme="dark"] .btn-close { filter: invert(1); }
     .theme-btn { background: rgba(255,255,255,.18); border: 0; color: #fff; width: 36px; height: 36px; border-radius: 50%; }
     .login-theme { position: absolute; top: 14px; right: 14px; }
-  </style>
+  .activity-options{display:flex;flex-wrap:wrap;gap:6px}.activity-option{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 10px;font-size:.78rem;line-height:1.15}.activity-option.active{background:var(--brand);border-color:var(--brand);color:#fff}.filter-slicer{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}.filter-slicer button{border:1px solid var(--bs-border-color);background:transparent;border-radius:999px;padding:5px 10px;font-size:.78rem;line-height:1.15}.filter-slicer button.active{background:var(--bs-primary);color:#fff;border-color:var(--bs-primary)}
+</style>
 </head>
 <body>
 
@@ -245,9 +246,9 @@
             </select>
           </div>
           <div class="col-6 col-md-2"><label class="form-label">Category</label>
-            <select id="fType" class="form-select"><option value="">All</option><option>QR</option><option>POS</option><option>SB</option><option>Payway Inspection</option></select></div>
+            <select id="fType" class="form-select hidden"><option value="">All</option><option>QR</option><option>POS</option><option>SB</option><option>Payway Inspection</option></select><div class="filter-slicer" id="typeSlicer"><button type="button" class="active" data-value="">All</button><button type="button" data-value="QR">QR</button><button type="button" data-value="POS">POS</button><button type="button" data-value="SB">SB</button><button type="button" data-value="Payway Inspection">Payway</button></div></div>
           <div class="col-6 col-md-3"><label class="form-label">Activity</label>
-            <select id="fActivity" class="form-select"><option value="">All</option></select></div>
+            <select id="fActivity" class="form-select hidden"><option value="">All</option></select><div class="filter-slicer" id="activitySlicer"><button type="button" class="active" data-value="">All activities</button></div></div>
           <div class="col-6 col-md-3 hidden" id="fFromWrap"><label class="form-label">From</label><input type="date" id="fFrom" class="form-control"></div>
           <div class="col-6 col-md-3 hidden" id="fToWrap"><label class="form-label">To</label><input type="date" id="fTo" class="form-control"></div>
           <div class="col-12 col-md">
@@ -476,9 +477,9 @@ const MAX_MERCHANTS = 10;
 const TYPES = ['QR', 'POS', 'SB', 'Payway Inspection'];
 const ACTIVITIES = {
   'QR': ['Refreshment', 'Installation'],
-  'POS': ['Maintenance', 'Fixed Issue', 'New Install', 'Paper Roll', 'Battery Replacement'],
+  'POS': ['Maintenance', 'Fixed Issue', 'New Install', 'Paper Roll', 'Battery Replacement', 'Item Removal', 'Deployment', 'Refreshment Training'],
   'SB': ['Maintenance', 'Fixed Issue', 'Battery Replacement', 'New Install'],
-  'Payway Inspection': ['Inspection']
+  'Payway Inspection': ['Inspection', 'Merchant Inquiries']
 };
 const isInstall = a => a === 'Installation' || a === 'New Install';
 const dateLabel = a => !a ? 'Installed / action date' : (isInstall(a) ? 'Installed date' : 'Action date');
@@ -490,6 +491,8 @@ function fillActivities(card) {
   const single = list.length === 1;
   sel.innerHTML = (single ? '' : '<option value="">Select activity…</option>') + list.map(a => '<option>' + esc(a) + '</option>').join('');
   sel.value = list.includes(keep) ? keep : (single ? list[0] : '');
+  const opts = $('.activity-options', card.el); opts.innerHTML = list.map(a => '<button type="button" class="activity-option'+(sel.value===a?' active':'')+'" data-activity="'+esc(a)+'">'+esc(a)+'</button>').join('');
+  opts.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { sel.value=b.dataset.activity; opts.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b)); updateDateLabel(card); updateActivityFields(card); }));
   show($('.act-wrap', card.el), !single);
   updateDateLabel(card);
 }
@@ -500,6 +503,22 @@ function updateDateLabel(card) {
 function applyType(card) {
   fillActivities(card);
   show($('.tid-wrap', card.el), curType === 'POS' || curType === 'SB');
+  updateActivityFields(card);
+}
+// Default field rules; these can be replaced by administrator-managed rules when configured.
+const ACTIVITY_FIELD_RULES = {};
+function updateActivityFields(card) {
+  const a = $('.f-act', card.el).value;
+  const replace = a === 'Replace' || a === 'Replacement' || a === 'Device Replacement';
+  showAll = (selector, on) => $$(selector, card.el).forEach(el => show(el, on));
+  showAll('.serial-wrap', replace);
+  const defaults = ACTIVITY_FIELD_RULES[curType + '|' + a] || {};
+  const standardExceptions = ['New Install','Replace','Change Battery','Fixed Issue','Maintenance'];
+  const showContact = defaults.phoneShow != null ? defaults.phoneShow : !standardExceptions.includes(a);
+  const showTag = defaults.tagShow != null ? defaults.tagShow : !standardExceptions.includes(a);
+  showAll('.phone-wrap', showContact); showAll('.tag-wrap', showTag);
+  const pl = $('.phone-wrap .form-label', card.el); if (pl) pl.textContent = 'Phone number' + (defaults.phoneRequired ? ' *' : '');
+  const tl = $('.tag-wrap .form-label', card.el); if (tl) tl.textContent = 'Tag' + (defaults.tagRequired ? ' *' : '');
 }
 function setType(t) {
   if (!TYPES.includes(t)) t = 'QR';
@@ -628,7 +647,7 @@ $$('.bottom-nav button').forEach(b => b.addEventListener('click', () => switchTa
 async function loadSummary() {
   try {
     const s = await api('getSummary', S.token);
-    $('#sumLabel').textContent = s.isAdmin ? 'Total installations today' : 'Your installations today';
+    $('#sumLabel').textContent = s.isAdmin ? 'Total activities today' : 'Your activities today';
     $('#sumNum').textContent = s.today;
     $('#sumTotal').textContent = s.total;
   } catch (e) { /* non-fatal */ }
@@ -743,7 +762,7 @@ function addMerchant() {
   el.innerHTML =
     '<div class="merchant-head"><span class="badge-num">Merchant <span class="n"></span></span><span class="flex-grow-1 ms-2"><span class="pill ty"></span></span>' +
     '<button class="btn btn-sm btn-outline-danger border-0 btn-remove" type="button"><i class="bi bi-trash3"></i></button></div>' +
-    '<div class="mb-3 act-wrap"><label class="form-label">Activity</label><select class="form-select f-act"></select></div>' +
+    '<div class="mb-3 act-wrap"><label class="form-label">Activity</label><select class="form-select f-act hidden"></select><div class="activity-options"></div></div>' +
     '<div class="mb-3"><label class="form-label date-lbl">Installed / action date</label><input type="date" class="form-control f-date"></div>' +
     '<div class="row g-2 mb-3">' +
       '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-scan"><i class="bi bi-qr-code-scan me-1"></i>Scan QR</button></div>' +
@@ -753,6 +772,11 @@ function addMerchant() {
     '<div class="mb-3"><label class="form-label">Merchant name</label><input class="form-control f-name" placeholder="Auto-filled from KHQR"></div>' +
     '<div class="mb-3"><label class="form-label">MID</label><input class="form-control f-mid" inputmode="text" placeholder="Auto-filled from KHQR"></div>' +
     '<div class="mb-3 tid-wrap hidden"><label class="form-label">TID <span class="text-lowercase fw-normal">(terminal ID, required)</span></label><input class="form-control f-tid" autocapitalize="characters" autocomplete="off" placeholder="Auto-filled from KHQR, or type it"></div>' +
+    '<div class="mb-3 serial-wrap hidden"><label class="form-label">Old S/N</label><input class="form-control f-oldsn" placeholder="Old serial number"></div>' +
+    '<div class="mb-3 serial-wrap hidden"><label class="form-label">New S/N</label><input class="form-control f-newsn" placeholder="New serial number"></div>' +
+    '<div class="mb-3 phone-wrap hidden"><label class="form-label">Phone number</label><input class="form-control f-phone" inputmode="tel" placeholder="Contact phone number"></div>' +
+    '<div class="mb-3 tag-wrap hidden"><label class="form-label">Tag</label><input class="form-control f-tag" placeholder="Additional tag / remark"></div>' +
+    '<div class="small text-muted location-line mb-2"><i class="bi bi-geo-alt"></i> Location is captured when photo stamping is enabled.</div>' +
     '<div class="mb-3"><label class="form-label">Business name</label><input class="form-control f-biz" value="N/A"></div>' +
     '<div class="mb-3"><label class="form-label">Remarks</label><textarea class="form-control f-rem" rows="2"></textarea></div>' +
     '<label class="form-label">Photos <span class="text-lowercase fw-normal">(max ' + MAX_PHOTOS + ')</span></label>' +
@@ -772,7 +796,7 @@ function addMerchant() {
   const card = { id, el, photos: [] };
   S.cards.push(card);
   applyType(card);
-  $('.f-act', el).addEventListener('change', () => updateDateLabel(card));
+  $('.f-act', el).addEventListener('change', () => { updateDateLabel(card); updateActivityFields(card); $$('.activity-option', el).forEach(b=>b.classList.toggle('active', b.dataset.activity === $('.f-act', el).value)); });
 
   $('.btn-scan', el).onclick = () => { S.scanTarget = card; scanModal.show(); };
   $('.btn-upload', el).onclick = () => $('.qr-file', el).click();
@@ -804,6 +828,8 @@ function updateAddBtn() {
     ? '<i class="bi bi-check2-circle me-1"></i>Maximum ' + MAX_MERCHANTS + ' merchants reached'
     : '<i class="bi bi-plus-lg me-1"></i>Add another merchant (' + S.cards.length + '/' + MAX_MERCHANTS + ')';
 }
+$('#typeSlicer').addEventListener('click', e => { const b=e.target.closest('button[data-value]'); if(!b)return; $('#fType').value=b.dataset.value; $$('#typeSlicer button').forEach(x=>x.classList.toggle('active',x===b)); fillActivityFilter(); loadRecords(); });
+$('#activitySlicer').addEventListener('click', e => { const b=e.target.closest('button[data-value]'); if(!b)return; $('#fActivity').value=b.dataset.value; $$('#activitySlicer button').forEach(x=>x.classList.toggle('active',x===b)); loadRecords(); });
 $('#typeTabs').addEventListener('click', e => { const b = e.target.closest('button[data-type]'); if (b) setType(b.dataset.type); });
 $('#addMerchantBtn').addEventListener('click', () => {
   if (S.cards.length >= MAX_MERCHANTS) { toast('You can add up to ' + MAX_MERCHANTS + ' merchants per submission.', 'warning'); return; }
@@ -969,7 +995,12 @@ $('#submitBtn').addEventListener('click', async () => {
     const needTid = curType === 'POS' || curType === 'SB';
     if (needTid && !g('.f-tid')) { toast('Merchant ' + (i + 1) + ': enter the TID.', 'danger'); $('.f-tid', c.el).focus(); c.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
     if (!g('.f-date')) { toast('Merchant ' + (i + 1) + ': pick the date.', 'danger'); c.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-    items.push({ type: curType, activity: g('.f-act'), tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: g('.f-biz') || 'N/A', merchant: g('.f-name'), mid: g('.f-mid'), remarks: g('.f-rem'), photos: c.photos });
+    const activity = g('.f-act'), rule = ACTIVITY_FIELD_RULES[curType + '|' + activity] || {};
+    if ((rule.phoneRequired || ($('.phone-wrap', c.el) && !$('.phone-wrap', c.el).classList.contains('hidden') && rule.phoneShow === true && rule.phoneRequired === true)) && !g('.f-phone')) { toast('Merchant ' + (i + 1) + ': enter the phone number.', 'danger'); $('.f-phone', c.el).focus(); return; }
+    if (rule.tagRequired && !g('.f-tag')) { toast('Merchant ' + (i + 1) + ': enter the Tag.', 'danger'); $('.f-tag', c.el).focus(); return; }
+    if (['Replace','Replacement','Device Replacement'].includes(activity) && (!g('.f-oldsn') || !g('.f-newsn'))) { toast('Merchant ' + (i + 1) + ': enter both Old S/N and New S/N.', 'danger'); return; }
+    const remarks = [g('.f-rem'), g('.f-tag') ? 'Tag: ' + g('.f-tag') : '', g('.f-phone') ? 'Phone: ' + g('.f-phone') : '', g('.f-oldsn') ? 'Old S/N: ' + g('.f-oldsn') : '', g('.f-newsn') ? 'New S/N: ' + g('.f-newsn') : ''].filter(Boolean).join(' | ');
+    items.push({ type: curType, activity, tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: g('.f-biz') || 'N/A', merchant: g('.f-name'), mid: g('.f-mid'), remarks, phone: g('.f-phone'), tag: g('.f-tag'), oldSN: g('.f-oldsn'), newSN: g('.f-newsn'), location: (geo.pos ? coordText(geo.pos) : ''), address: (geo.place ? [geo.place.street, geo.place.city].filter(Boolean).join(', ') : ''), photos: c.photos });
   }
   const btn = $('#submitBtn');
   busy(btn, true, 'Submitting…');
@@ -1000,6 +1031,7 @@ function fillActivityFilter() {
   const list = cat ? ACTIVITIES[cat] : Array.from(new Set([].concat(...TYPES.map(t => ACTIVITIES[t]))));
   sel.innerHTML = '<option value="">All</option>' + list.map(a => '<option>' + esc(a) + '</option>').join('');
   sel.value = list.includes(cur) ? cur : '';
+  const wrap = $('#activitySlicer'); if (wrap) { wrap.innerHTML = ['<button type="button" data-value="">All activities</button>'].concat(list.map(a => '<button type="button" data-value="'+esc(a)+'">'+esc(a)+'</button>')).join(''); $$('#activitySlicer button').forEach(b=>b.classList.toggle('active', b.dataset.value===sel.value)); }
 }
 async function loadRecords() {
   const r = range();
