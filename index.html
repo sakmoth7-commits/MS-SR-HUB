@@ -268,7 +268,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-hover mb-0">
-            <thead><tr><th>Category</th><th>Activity</th><th>Stamp</th><th>Date</th><th>Staff</th><th>Merchant</th><th>MID</th><th>TID</th><th>Business</th><th>Type</th><th>Hours</th><th>Group</th><th>Phone</th><th>Tag</th><th>Old S/N</th><th>New S/N</th><th>Remarks</th><th>Location</th><th>📷</th></tr></thead>
+            <thead><tr><th>Category</th><th>Activity</th><th>Stamp</th><th>Date</th><th>Staff</th><th>Merchant</th><th>MID</th><th>TID</th><th>Business</th><th>Type</th><th>Hours</th><th>Group</th><th>Extra</th><th>Phone</th><th>Tag</th><th>Old S/N</th><th>New S/N</th><th>Remarks</th><th>Location</th><th>📷</th></tr></thead>
             <tbody id="recBody"></tbody>
           </table>
         </div>
@@ -283,6 +283,25 @@
           <button type="button" class="btn btn-soft btn-sm" id="catEditBtn"><i class="bi bi-pencil me-1"></i>Edit</button>
         </div>
         <div id="catSummary" class="small text-muted"></div>
+      </div>
+
+      <div class="card-x" id="tplCard">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="fw-bold"><i class="bi bi-chat-text me-1"></i>Telegram alert message</div>
+          <span class="pill" id="tplStatus">…</span>
+        </div>
+        <div class="small text-muted mb-2">One line per row. Tap a name to add it where the cursor is. A line is left out when everything in it is empty.</div>
+        <div class="chips mb-2" id="tplChips"></div>
+        <textarea id="tplText" class="form-control" rows="12" spellcheck="false" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem"></textarea>
+        <div class="small text-muted mt-1">You can use &lt;b&gt;, &lt;i&gt;, &lt;u&gt; and &lt;code&gt;; close them on the same line.</div>
+        <div class="row g-2 mt-2">
+          <div class="col-6"><button type="button" class="btn btn-soft w-100" id="tplPreviewBtn"><i class="bi bi-eye me-1"></i>Preview</button></div>
+          <div class="col-6"><button type="button" class="btn btn-brand w-100" id="tplSave">Save</button></div>
+          <div class="col-6"><button type="button" class="btn btn-soft w-100" id="tplReset">Reset to default</button></div>
+          <div class="col-6"><button type="button" class="btn btn-soft w-100" id="tplSend"><i class="bi bi-send me-1"></i>Send sample</button></div>
+        </div>
+        <div class="border rounded-3 p-3 mt-3 small" id="tplPreview" style="white-space:pre-wrap;word-break:break-word"></div>
+        <div id="tplMsg" class="small mt-2 hidden"></div>
       </div>
 
       <div class="card-x" id="tgCard">
@@ -326,13 +345,14 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:20px">
       <div class="modal-header border-0 pb-0">
-        <h6 class="modal-title fw-bold">Scan KHQR</h6>
+        <h6 class="modal-title fw-bold" id="scanTitle">Scan KHQR</h6>
         <button class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <video id="scanVideo" playsinline muted></video>
         <div id="scanError" class="alert alert-warning small mt-3 mb-0 hidden"></div>
-        <p class="text-muted small mt-2 mb-0">Point the camera at the merchant QR. If the camera is blocked, close this and use <b>Upload</b>.</p>
+        <p class="text-muted small mt-2 mb-0" id="scanHelp">Point the camera at the merchant QR. If the camera is blocked, close this and use <b>Upload</b>.</p>
+        <label class="btn btn-soft btn-sm mt-2 mb-0 hidden" id="snFileWrap"><i class="bi bi-image me-1"></i>Read from a photo<input type="file" accept="image/*" id="snFile" hidden></label>
       </div>
     </div>
   </div>
@@ -362,6 +382,9 @@
             <input id="uTopic" class="form-control" inputmode="numeric" placeholder="optional">
           </div>
         </div>
+        <label class="form-label mt-3">Telegram Group ID <span class="text-muted text-lowercase">(optional)</span></label>
+        <input id="uGroup" class="form-control" inputmode="text" autocomplete="off" placeholder="-1001234567890">
+        <div class="small text-muted mt-1">Leave empty to use the default group. If set, this staff member's alerts go to this group instead (the bot must be a member). A Topic ID, if given, is used inside that group.</div>
         <div id="userError" class="text-danger small mt-3 hidden"></div>
       </div>
       <div class="modal-footer border-0 pt-0">
@@ -389,11 +412,12 @@
         <div class="mb-3"><label class="form-label">MID</label><input id="eMid" class="form-control"></div>
         <div class="mb-3" id="eTidWrap"><label class="form-label">TID</label><input id="eTid" class="form-control" autocapitalize="characters" autocomplete="off"></div>
         <div class="mb-3"><label class="form-label">Business name</label><input id="eBiz" class="form-control"></div>
-        <div id="eReplaceWrap" class="row g-2 mb-3 hidden"><div class="col-6"><label class="form-label">Old S/N</label><input id="eOldSn" class="form-control" autocapitalize="characters"></div><div class="col-6"><label class="form-label">New S/N</label><input id="eNewSn" class="form-control" autocapitalize="characters"></div></div>
-        <div id="eBizWrap" class="hidden"><div class="mb-3"><label class="form-label">Business type</label><input id="eBType" class="form-control" maxlength="60" list="bizTypeList"><datalist id="bizTypeList"></datalist></div>
-          <div class="mb-3"><label class="form-label">Business hours</label><div class="row g-2 align-items-center"><div class="col"><input type="time" id="eOpen" class="form-control"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" id="eClose" class="form-control"></div></div></div>
-          <div class="mb-3"><label class="form-label">Group name</label><input id="eGroup" class="form-control" maxlength="100"></div></div>
-        <div id="eContactWrap" class="hidden"><div class="mb-3"><label class="form-label">Phone number</label><input id="ePhone" class="form-control" type="tel" inputmode="tel"></div><div class="mb-3"><label class="form-label">Tag</label><input id="eTag" class="form-control" maxlength="200"></div></div>
+        <div id="eReplaceWrap" class="row g-2 mb-3 hidden"><div class="col-6"><label class="form-label">Old S/N<span class="rq text-danger hidden" data-k="oldSn"> *</span></label><div class="input-group"><input id="eOldSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div><div class="col-6"><label class="form-label">New S/N<span class="rq text-danger hidden" data-k="newSn"> *</span></label><div class="input-group"><input id="eNewSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div></div>
+        <div id="eBizWrap" class="hidden"><div class="mb-3"><label class="form-label">Business type<span class="rq text-danger hidden" data-k="btype"> *</span></label><input id="eBType" class="form-control" maxlength="60" list="bizTypeList"><datalist id="bizTypeList"></datalist></div>
+          <div class="mb-3"><label class="form-label">Business hours<span class="rq text-danger hidden" data-k="hours"> *</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" id="eOpen" class="form-control"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" id="eClose" class="form-control"></div></div></div>
+          <div class="mb-3"><label class="form-label">Group name<span class="rq text-danger hidden" data-k="group"> *</span></label><input id="eGroup" class="form-control" maxlength="100"></div></div>
+        <div id="eContactWrap" class="hidden"><div class="mb-3"><label class="form-label">Phone number<span class="rq text-danger hidden" data-k="phone"> *</span></label><input id="ePhone" class="form-control" type="tel" inputmode="tel"></div><div class="mb-3"><label class="form-label">Tag<span class="rq text-danger hidden" data-k="tag"> *</span></label><input id="eTag" class="form-control" maxlength="200"></div></div>
+        <div id="eCustom" class="hidden"></div>
         <div class="mb-1"><label class="form-label">Remarks</label><textarea id="eRem" class="form-control" rows="2"></textarea></div>
         <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Saving also updates the message in Telegram. Photos can't be changed after submitting.</div>
         <div id="eError" class="text-danger small mt-3 hidden"></div>
@@ -564,6 +588,24 @@ function syncBtype(el) {
   const v = $('.f-btype', el).value.trim().toLowerCase();
   $$('.btype-chips .chip', el).forEach(b => b.classList.toggle('active', b.dataset.t.toLowerCase() === v));
 }
+const isReq = (d, k) => (d && d.req && typeof d.req[k] === 'boolean') ? d.req[k] : (k === 'oldSn' || k === 'newSn');
+const PHONE_RE = /^[0-9+\-\s()]{6,20}$/;
+/** HTML of one admin-added box. Serial boxes get a barcode-scan button. */
+function customFieldHtml(f) {
+  const t = f.kind === 'date' ? 'date' : (f.kind === 'phone' ? 'tel' : 'text'), im = f.kind === 'number' ? 'decimal' : (f.kind === 'phone' ? 'tel' : 'text');
+  const inp = '<input class="form-control" data-fid="' + esc(f.id) + '" data-kind="' + f.kind + '" type="' + t + '" inputmode="' + im + '" autocomplete="off"' + (f.kind === 'serial' ? ' autocapitalize="characters"' : '') + '>';
+  return '<div class="mb-3"><label class="form-label">' + esc(f.label) + (f.req ? ' <span class="text-danger">*</span>' : '') + '</label>' +
+    (f.kind === 'serial' ? '<div class="input-group">' + inp + '<button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div>' : inp) + '</div>';
+}
+/** (Re)draws the admin-added boxes inside box, keeping what was typed. */
+function renderCustom(box, d) {
+  const old = {}; $$('[data-fid]', box).forEach(i => { old[i.dataset.fid] = i.value; });
+  const list = (d && d.custom) || [];
+  box.innerHTML = list.map(customFieldHtml).join('');
+  $$('[data-fid]', box).forEach(i => { if (old[i.dataset.fid] != null) i.value = old[i.dataset.fid]; });
+  show(box, list.length > 0);
+}
+function markRequired(root, d) { $$('.rq', root).forEach(x => show(x, isReq(d, x.dataset.k))); }
 /** Selects an activity: highlights it and shows the extra boxes it needs (phone/tag, old/new S/N). */
 function setAct(card, a) {
   $('.f-act', card.el).value = a;
@@ -572,6 +614,7 @@ function setAct(card, a) {
   show($('.contact-wrap', card.el), !!(d && d.contact));
   show($('.replace-wrap', card.el), !!(d && d.replace));
   show($('.biz-wrap', card.el), !!(d && d.bizinfo));
+  markRequired(card.el, d); renderCustom($('.custom-wrap', card.el), d);
   updateDateLabel(card);
 }
 function updateDateLabel(card) {
@@ -594,7 +637,7 @@ function setType(t) {
 }
 
 // Paste your Apps Script Web app URL (ends with /exec) here:
-const API_URL = 'https://script.google.com/macros/s/AKfycbzCqD1DodFbLtHvqY7Z8HKKMaOIXTFi1R2eBPdnwxRv1nh7BAJsZNnUm6_e6fUGmrCReQ/exec';
+const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
 
 async function api(fn, ...args) {
   let json;
@@ -703,7 +746,7 @@ function switchTab(name) {
   $$('.bottom-nav button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (name === 'records') loadRecords();
-  if (name === 'users') { loadUsers(); renderCatSummary(); }
+  if (name === 'users') { loadUsers(); renderCatSummary(); loadTemplate(); }
 }
 $$('.bottom-nav button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
@@ -761,21 +804,62 @@ function applyQR(card, text) {
 
 /* ---- camera ---- */
 const scanModal = new bootstrap.Modal($('#scanModal'));
+function scanMode(sn) {
+  $('#scanTitle').textContent = sn ? 'Scan barcode / serial number' : 'Scan KHQR';
+  $('#scanHelp').innerHTML = sn ? 'Point the camera at the barcode or QR on the sticker. If the camera is blocked, use <b>Read from a photo</b> or type it.' : 'Point the camera at the merchant QR. If the camera is blocked, close this and use <b>Upload</b>.';
+  show($('#snFileWrap'), !!sn);
+}
+/** Opens the scanner to fill one serial-number box. ret = a modal to come back to afterwards. */
+function openSnScan(inp, ret) {
+  S.scanTarget = null; S.snInput = inp; S.scanReturn = ret || null; scanMode(true);
+  if (ret) { ret.hide(); setTimeout(() => scanModal.show(), 350); } else scanModal.show();
+}
+function applySn(text) {
+  const inp = S.snInput; if (!inp) return;
+  inp.value = String(text || '').trim().toUpperCase().slice(0, 60);
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  scanModal.hide();
+}
 async function startScan() {
   show($('#scanError'), false);
   try {
-    S.reader = new ZXing.BrowserQRCodeReader();
+    S.reader = S.snInput ? new ZXing.BrowserMultiFormatReader() : new ZXing.BrowserQRCodeReader();
     await S.reader.decodeFromConstraints({ video: { facingMode: { ideal: 'environment' } } }, 'scanVideo', result => {
-      if (result && S.scanTarget) { const t = S.scanTarget; scanModal.hide(); applyQR(t, result.getText()); }
+      if (!result) return;
+      if (S.snInput) applySn(result.getText());
+      else if (S.scanTarget) { const t = S.scanTarget; scanModal.hide(); applyQR(t, result.getText()); }
     });
   } catch (e) {
-    $('#scanError').textContent = 'Camera is not available here. Close this and tap Upload instead.';
+    $('#scanError').textContent = S.snInput ? 'Camera is not available here. Close this and type the number instead.' : 'Camera is not available here. Close this and tap Upload instead.';
     show($('#scanError'), true);
   }
 }
-function stopScan() { try { S.reader && S.reader.reset(); } catch (e) {} S.reader = null; }
+function stopScan() {
+  try { S.reader && S.reader.reset(); } catch (e) {} S.reader = null;
+  S.snInput = null;
+  if (S.scanReturn) { const r = S.scanReturn; S.scanReturn = null; setTimeout(() => r.show(), 200); }
+}
 $('#scanModal').addEventListener('shown.bs.modal', startScan);
 $('#scanModal').addEventListener('hidden.bs.modal', stopScan);
+$('#snFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let text = null, loaded = null;
+  try {
+    loaded = await loadImage(f);
+    const rd = new ZXing.BrowserMultiFormatReader();
+    for (const src of [loaded.url, () => scaledDataUrl(loaded.img, 1000), () => scaledDataUrl(loaded.img, 1600), () => scaledDataUrl(loaded.img, 600)]) {
+      try { text = (await rd.decodeFromImageUrl(typeof src === 'function' ? src() : src)).getText(); break; } catch (er) { /* next */ }
+    }
+  } catch (er) {}
+  if (loaded) URL.revokeObjectURL(loaded.url);
+  if (text) applySn(text); else toast('No barcode found in that photo.', 'warning');
+});
+// every scan button next to a serial-number box (form cards and the edit window)
+document.addEventListener('click', e => {
+  const b = e.target.closest('.btn-sn'); if (!b) return;
+  const inp = $('input', b.parentElement); if (!inp) return;
+  openSnScan(inp, b.closest('#editModal') ? editModal : null);
+});
 
 /* ---- upload screenshot ---- */
 function loadImage(file) {
@@ -837,14 +921,15 @@ function addMerchant() {
     '<div class="mb-3"><label class="form-label">MID</label><input class="form-control f-mid" inputmode="text" placeholder="Auto-filled from KHQR"></div>' +
     '<div class="mb-3 tid-wrap hidden"><label class="form-label">TID <span class="text-lowercase fw-normal">(terminal ID, required)</span></label><input class="form-control f-tid" autocapitalize="characters" autocomplete="off" placeholder="Auto-filled from KHQR, or type it"></div>' +
     '<div class="mb-3"><label class="form-label">Business name</label><input class="form-control f-biz" value="N/A"></div>' +
-    '<div class="biz-wrap hidden"><div class="mb-3"><label class="form-label">Business type</label><input class="form-control f-btype mb-2" maxlength="60" autocomplete="off" placeholder="Type, or tap one below">' +
+    '<div class="biz-wrap hidden"><div class="mb-3"><label class="form-label">Business type<span class="rq text-danger hidden" data-k="btype"> *</span></label><input class="form-control f-btype mb-2" maxlength="60" autocomplete="off" placeholder="Type, or tap one below">' +
       '<div class="chips btype-chips">' + BIZ_TYPES.map(t => '<button type="button" class="chip" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div></div>' +
-      '<div class="mb-3"><label class="form-label">Business hours</label><div class="row g-2 align-items-center"><div class="col"><input type="time" class="form-control f-open" aria-label="Opens"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" class="form-control f-close" aria-label="Closes"></div></div></div>' +
-      '<div class="mb-3"><label class="form-label">Group name</label><input class="form-control f-group" maxlength="100" autocomplete="off" placeholder="e.g. owner / chain / group name"></div></div>' +
-    '<div class="replace-wrap hidden row g-2 mb-3"><div class="col-6"><label class="form-label">Old S/N <span class="text-lowercase fw-normal">(required)</span></label><input class="form-control f-old" autocapitalize="characters" autocomplete="off"></div>' +
-      '<div class="col-6"><label class="form-label">New S/N <span class="text-lowercase fw-normal">(required)</span></label><input class="form-control f-new" autocapitalize="characters" autocomplete="off"></div></div>' +
-    '<div class="contact-wrap hidden"><div class="mb-3"><label class="form-label">Phone number</label><input class="form-control f-phone" type="tel" inputmode="tel" autocomplete="off" placeholder="e.g. 012 345 678"></div>' +
-      '<div class="mb-3"><label class="form-label">Tag</label><input class="form-control f-tag" maxlength="200" autocomplete="off" placeholder="Extra remark / tag"></div></div>' +
+      '<div class="mb-3"><label class="form-label">Business hours<span class="rq text-danger hidden" data-k="hours"> *</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" class="form-control f-open" aria-label="Opens"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" class="form-control f-close" aria-label="Closes"></div></div></div>' +
+      '<div class="mb-3"><label class="form-label">Group name<span class="rq text-danger hidden" data-k="group"> *</span></label><input class="form-control f-group" maxlength="100" autocomplete="off" placeholder="e.g. owner / chain / group name"></div></div>' +
+    '<div class="replace-wrap hidden row g-2 mb-3"><div class="col-6"><label class="form-label">Old S/N<span class="rq text-danger hidden" data-k="oldSn"> *</span></label><div class="input-group"><input class="form-control f-old" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
+      '<div class="col-6"><label class="form-label">New S/N<span class="rq text-danger hidden" data-k="newSn"> *</span></label><div class="input-group"><input class="form-control f-new" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div></div>' +
+    '<div class="contact-wrap hidden"><div class="mb-3"><label class="form-label">Phone number<span class="rq text-danger hidden" data-k="phone"> *</span></label><input class="form-control f-phone" type="tel" inputmode="tel" autocomplete="off" placeholder="e.g. 012 345 678"></div>' +
+      '<div class="mb-3"><label class="form-label">Tag<span class="rq text-danger hidden" data-k="tag"> *</span></label><input class="form-control f-tag" maxlength="200" autocomplete="off" placeholder="Extra remark / tag"></div></div>' +
+    '<div class="custom-wrap hidden"></div>' +
     '<div class="mb-3"><label class="form-label">Remarks</label><textarea class="form-control f-rem" rows="2"></textarea></div>' +
     '<label class="form-label">Photos <span class="text-lowercase fw-normal">(required, max ' + MAX_PHOTOS + ')</span></label>' +
     '<div class="row g-2">' +
@@ -870,7 +955,7 @@ function addMerchant() {
   $('.f-btype', el).addEventListener('input', () => syncBtype(el));
   $('.act-chips', el).addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) setAct(card, b.dataset.a); });
 
-  $('.btn-scan', el).onclick = () => { S.scanTarget = card; scanModal.show(); };
+  $('.btn-scan', el).onclick = () => { S.scanTarget = card; S.snInput = null; scanMode(false); scanModal.show(); };
   $('.btn-upload', el).onclick = () => $('.qr-file', el).click();
   $('.qr-file', el).onchange = async e => { await decodeFile(card, e.target.files[0]); e.target.value = ''; };
   $('.btn-photo', el).onclick = () => $('.photo-file', el).click();
@@ -1156,12 +1241,31 @@ $('#submitBtn').addEventListener('click', async () => {
     const needTid = !!(typeDef(curType) && typeDef(curType).tid), ad = actDef(curType, g('.f-act')), bad = (m, sel) => { toast('Merchant ' + (i + 1) + ': ' + m, 'danger'); if (sel) $(sel, c.el).focus(); c.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
     if (needTid && !g('.f-tid')) { bad('enter the TID.', '.f-tid'); return; }
     if (!g('.f-date')) { bad('pick the date.'); return; }
-    if (ad && ad.replace && !g('.f-old')) { bad('enter the Old S/N.', '.f-old'); return; }
-    if (ad && ad.replace && !g('.f-new')) { bad('enter the New S/N.', '.f-new'); return; }
-    if (ad && ad.contact && g('.f-phone') && !/^[0-9+\-\s()]{6,20}$/.test(g('.f-phone'))) { bad('the phone number looks wrong.', '.f-phone'); return; }
-    if (ad && ad.bizinfo && (!!g('.f-open') !== !!g('.f-close'))) { bad('enter both opening and closing time (or leave both empty).', g('.f-open') ? '.f-close' : '.f-open'); return; }
+    const rq = k => isReq(ad, k);
+    if (ad && ad.contact) {
+      if (rq('phone') && !g('.f-phone')) { bad('enter the phone number.', '.f-phone'); return; }
+      if (g('.f-phone') && !PHONE_RE.test(g('.f-phone'))) { bad('the phone number looks wrong.', '.f-phone'); return; }
+      if (rq('tag') && !g('.f-tag')) { bad('enter the Tag.', '.f-tag'); return; }
+    }
+    if (ad && ad.replace) {
+      if (rq('oldSn') && !g('.f-old')) { bad('enter the Old S/N.', '.f-old'); return; }
+      if (rq('newSn') && !g('.f-new')) { bad('enter the New S/N.', '.f-new'); return; }
+    }
+    if (ad && ad.bizinfo) {
+      if (rq('btype') && !g('.f-btype')) { bad('enter the business type.', '.f-btype'); return; }
+      if ((rq('hours') && !g('.f-open')) || (!!g('.f-open') !== !!g('.f-close'))) { bad('enter both opening and closing time.', g('.f-open') ? '.f-close' : '.f-open'); return; }
+      if (rq('group') && !g('.f-group')) { bad('enter the group name.', '.f-group'); return; }
+    }
+    const extra = {};
+    for (const f of ((ad && ad.custom) || [])) {
+      const inp = $('[data-fid="' + f.id + '"]', c.el), v = inp ? inp.value.trim() : '';
+      if (!v) { if (f.req) { bad('enter ' + f.label + '.'); if (inp) inp.focus(); return; } continue; }
+      if (f.kind === 'number' && !/^-?\d+(\.\d+)?$/.test(v)) { bad(f.label + ' must be a number.'); return; }
+      if (f.kind === 'phone' && !PHONE_RE.test(v)) { bad(f.label + ' looks wrong.'); return; }
+      extra[f.id] = v;
+    }
     if (!c.photos.length) { bad('attach at least one photo.'); return; }
-    items.push({ type: curType, activity: g('.f-act'), tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: g('.f-biz') || 'N/A', merchant: g('.f-name'), mid: g('.f-mid'), remarks: g('.f-rem'),
+    items.push({ type: curType, activity: g('.f-act'), tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: g('.f-biz') || 'N/A', merchant: g('.f-name'), mid: g('.f-mid'), remarks: g('.f-rem'), extra,
       phone: ad && ad.contact ? g('.f-phone') : '', tag: ad && ad.contact ? g('.f-tag') : '', oldSn: ad && ad.replace ? g('.f-old') : '', newSn: ad && ad.replace ? g('.f-new') : '',
       btype: ad && ad.bizinfo ? g('.f-btype') : '', hours: ad && ad.bizinfo && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', group: ad && ad.bizinfo ? g('.f-group') : '', photos: c.photos });
   }
@@ -1215,7 +1319,7 @@ function fillActivityFilter() {
 }
 async function loadRecords() {
   const r = range();
-  $('#recBody').innerHTML = '<tr><td colspan="19" class="empty"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+  $('#recBody').innerHTML = '<tr><td colspan="20" class="empty"><span class="spinner-border spinner-border-sm"></span></td></tr>';
   try {
     const data = await api('getRecords', S.token, { user: $('#fUser').value, type: $('#fType').value, activity: $('#fActivity').value, from: r.from, to: r.to });
     S.rows = data.rows;
@@ -1228,7 +1332,7 @@ async function loadRecords() {
 function filtered() {
   const q = $('#fSearch').value.trim().toLowerCase();
   if (!q) return S.rows;
-  return S.rows.filter(r => [r.stamp, r.type, r.activity, r.tid, r.user, r.business, r.merchant, r.mid, r.remarks, r.phone, r.tag, r.oldSn, r.newSn, r.btype, r.group].join(' ').toLowerCase().includes(q));
+  return S.rows.filter(r => [r.stamp, r.type, r.activity, r.tid, r.user, r.business, r.merchant, r.mid, r.remarks, r.phone, r.tag, r.oldSn, r.newSn, r.btype, r.group, r.extra].join(' ').toLowerCase().includes(q));
 }
 function locLink(t) {
   const m = /(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(String(t || ''));
@@ -1240,8 +1344,8 @@ function renderRows() {
   $('#recBody').innerHTML = rows.length ? rows.map(r =>
     '<tr><td><span class="pill">' + esc(r.type) + '</span></td><td>' + esc(r.activity) + '</td><td class="text-nowrap small">' + esc(r.stamp) +
     '</td><td class="text-nowrap">' + esc(r.date || r.ts.slice(0, 10)) + '</td><td><span class="pill">' + esc(r.user) + '</span></td><td class="fw-semibold">' + esc(r.merchant) +
-    '</td><td class="text-nowrap">' + esc(r.mid) + '</td><td class="text-nowrap">' + esc(r.tid) + '</td><td>' + esc(r.business) + '</td><td>' + esc(r.btype) + '</td><td class="text-nowrap">' + esc(r.hours) + '</td><td>' + esc(r.group) + '</td><td class="text-nowrap">' + esc(r.phone) + '</td><td>' + esc(r.tag) + '</td><td class="text-nowrap">' + esc(r.oldSn) + '</td><td class="text-nowrap">' + esc(r.newSn) + '</td><td>' + esc(r.remarks) + '</td><td>' + locLink(r.loc) + '</td><td>' + (r.photos || '') + '</td></tr>'
-  ).join('') : '<tr><td colspan="19"><div class="empty"><i class="bi bi-inbox"></i>No records for this filter</div></td></tr>';
+    '</td><td class="text-nowrap">' + esc(r.mid) + '</td><td class="text-nowrap">' + esc(r.tid) + '</td><td>' + esc(r.business) + '</td><td>' + esc(r.btype) + '</td><td class="text-nowrap">' + esc(r.hours) + '</td><td>' + esc(r.group) + '</td><td>' + esc(r.extra) + '</td><td class="text-nowrap">' + esc(r.phone) + '</td><td>' + esc(r.tag) + '</td><td class="text-nowrap">' + esc(r.oldSn) + '</td><td class="text-nowrap">' + esc(r.newSn) + '</td><td>' + esc(r.remarks) + '</td><td>' + locLink(r.loc) + '</td><td>' + (r.photos || '') + '</td></tr>'
+  ).join('') : '<tr><td colspan="20"><div class="empty"><i class="bi bi-inbox"></i>No records for this filter</div></td></tr>';
 }
 /* ---- Admin chart: one cluster per staff member, one column per category ---- */
 // Colour by position in the category list (first four are the validated slots; the rest are extras).
@@ -1342,8 +1446,8 @@ $('#csvBtn').addEventListener('click', () => {
   const rows = filtered();
   if (!rows.length) { toast('Nothing to export.', 'warning'); return; }
   const cell = v => { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
-  const lines = [['Timestamp', 'Staff', 'Merchant Name', 'MID', 'TID', 'Business Name', 'Remarks', 'Installed/Action Date', 'Photos', 'Category', 'Activity', 'Stamp', 'Phone', 'Tag', 'Old S/N', 'New S/N', 'Location', 'Business Hours', 'Group Name', 'Business Type']].concat(
-    rows.map(r => [r.ts, r.user, r.merchant, r.mid, r.tid, r.business, r.remarks, r.date || r.ts.slice(0, 10), r.photos, r.type, r.activity, r.stamp, r.phone, r.tag, r.oldSn, r.newSn, r.loc, r.hours, r.group, r.btype]));
+  const lines = [['Timestamp', 'Staff', 'Merchant Name', 'MID', 'TID', 'Business Name', 'Remarks', 'Installed/Action Date', 'Photos', 'Category', 'Activity', 'Stamp', 'Phone', 'Tag', 'Old S/N', 'New S/N', 'Location', 'Business Hours', 'Group Name', 'Business Type', 'Extra Fields']].concat(
+    rows.map(r => [r.ts, r.user, r.merchant, r.mid, r.tid, r.business, r.remarks, r.date || r.ts.slice(0, 10), r.photos, r.type, r.activity, r.stamp, r.phone, r.tag, r.oldSn, r.newSn, r.loc, r.hours, r.group, r.btype, r.extra]));
   const csv = '\uFEFF' + lines.map(l => l.map(cell).join(',')).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -1364,7 +1468,7 @@ function renderUsers(list) {
   $('#userList').innerHTML = list.map((u, i) =>
     '<div class="user-row"><div class="avatar">' + esc(u.username.charAt(0).toUpperCase()) + '</div>' +
     '<div class="flex-grow-1"><div class="fw-semibold">' + esc(u.username) + '</div>' +
-    '<small class="text-muted">' + esc(u.role) + (u.topicId ? ' · Topic ' + esc(u.topicId) : '') + '</small></div>' +
+    '<small class="text-muted">' + esc(u.role) + (u.groupId ? ' · Group ' + esc(u.groupId) : '') + (u.topicId ? ' · Topic ' + esc(u.topicId) : '') + '</small></div>' +
     '<button class="btn btn-soft btn-sm" data-edit="' + i + '"><i class="bi bi-pencil"></i></button>' +
     '<button class="btn btn-outline-danger btn-sm border-0" data-del="' + i + '"><i class="bi bi-trash3"></i></button></div>'
   ).join('') || '<div class="empty">No users</div>';
@@ -1388,6 +1492,7 @@ function openUser(u) {
   $('#uPinHint').textContent = u ? '(leave blank to keep current)' : '(4–12 digits)';
   $('#uRole').value = u ? u.role : 'User';
   $('#uTopic').value = u ? u.topicId : '';
+  $('#uGroup').value = u ? (u.groupId || '') : '';
   userModal.show();
 }
 $('#addUserBtn').addEventListener('click', () => openUser(null));
@@ -1398,7 +1503,7 @@ $('#userForm').addEventListener('submit', async e => {
   try {
     const list = await api('saveUser', S.token, {
       original: $('#uOriginal').value, username: $('#uName').value, pin: $('#uPin').value,
-      role: $('#uRole').value, topicId: $('#uTopic').value
+      role: $('#uRole').value, topicId: $('#uTopic').value, groupId: $('#uGroup').value.trim()
     });
     renderUsers(list); userModal.hide(); toast('Staff saved', 'success');
   } catch (ex) { err.textContent = ex.message; show(err, true); }
@@ -1435,11 +1540,58 @@ $('#tgTest').addEventListener('click', async () => {
   busy(btn, false);
 });
 
+/* ============================ Telegram alert message (admin) ============================ */
+let tplDefault = '';
+function tplNote(text, ok) { const m = $('#tplMsg'); m.textContent = text; m.className = 'small mt-2 ' + (ok ? 'text-success' : 'text-danger'); }
+async function tplPreview() {
+  try { $('#tplPreview').innerHTML = await api('previewTelegramTemplate', S.token, $('#tplText').value); show($('#tplMsg'), false); }
+  catch (e) { tplNote(e.message, false); }
+}
+async function loadTemplate() {
+  try {
+    const t = await api('getTelegramTemplate', S.token);
+    tplDefault = t.defaultTemplate; $('#tplText').value = t.template;
+    $('#tplStatus').textContent = t.isDefault ? 'Default' : 'Custom';
+    $('#tplChips').innerHTML = t.placeholders.map(k => '<button type="button" class="chip" data-k="' + esc(k) + '">{' + esc(k) + '}</button>').join('');
+    tplPreview();
+  } catch (e) { tplNote(e.message, false); }
+}
+$('#tplChips').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  const ta = $('#tplText'), at = ta.selectionStart == null ? ta.value.length : ta.selectionStart, txt = '{' + b.dataset.k + '}';
+  ta.value = ta.value.slice(0, at) + txt + ta.value.slice(ta.selectionEnd == null ? at : ta.selectionEnd);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = at + txt.length; tplPreview();
+});
+let tplTimer; $('#tplText').addEventListener('input', () => { clearTimeout(tplTimer); tplTimer = setTimeout(tplPreview, 400); });
+$('#tplPreviewBtn').addEventListener('click', tplPreview);
+async function tplSaveWith(text, okMsg) {
+  const btn = $('#tplSave'); busy(btn, true, 'Saving…');
+  try { const t = await api('saveTelegramTemplate', S.token, text); $('#tplText').value = t.template; $('#tplStatus').textContent = t.isDefault ? 'Default' : 'Custom'; tplNote(okMsg, true); tplPreview(); }
+  catch (e) { tplNote(e.message, false); }
+  busy(btn, false);
+}
+$('#tplSave').addEventListener('click', () => tplSaveWith($('#tplText').value, 'Saved. New alerts use this layout.'));
+$('#tplReset').addEventListener('click', () => tplSaveWith('', 'Back to the default layout.'));
+$('#tplSend').addEventListener('click', async () => {
+  const btn = $('#tplSend'); busy(btn, true, 'Sending…');
+  try { await api('sendTelegramSample', S.token); tplNote('Sample sent to the group (using the saved layout).', true); }
+  catch (e) { tplNote(e.message, false); }
+  busy(btn, false);
+});
+
 /* ============================ Categories editor (admin) ============================ */
 const catModal = new bootstrap.Modal($('#catModal'));
-let catDraft = [];
+let catDraft = [], catSeq = 0;
+const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date']];
+const REQ_LABELS = { phone: 'Phone', tag: 'Tag', oldSn: 'Old S/N', newSn: 'New S/N', btype: 'Type', hours: 'Hours', group: 'Group' };
+/** "Must fill" switches for the built-in boxes this activity shows. */
+function reqChips(a) {
+  const ks = [].concat(a.contact ? ['phone', 'tag'] : [], a.replace ? ['oldSn', 'newSn'] : [], a.bizinfo ? ['btype', 'hours', 'group'] : []);
+  if (!ks.length) return '';
+  return '<div class="small text-muted mt-2">Must fill</div><div class="chips">' + ks.map(k => '<button type="button" class="chip a-req' + (isReq(a, k) ? ' active' : '') + '" data-k="' + k + '">' + REQ_LABELS[k] + '</button>').join('') + '</div>';
+}
 function renderCatSummary() {
-  $('#catSummary').innerHTML = CATALOG.map(t => '<div class="mb-1"><b>' + esc(t.name) + '</b> <span class="text-muted">(' + esc(t.code) + (t.tid ? ', TID' : '') + ')</span>: ' + t.acts.map(a => esc(a.n)).join(', ') + '</div>').join('');
+  $('#catSummary').innerHTML = CATALOG.map(t => '<div class="mb-1"><b>' + esc(t.name) + '</b> <span class="text-muted">(' + esc(t.code) + (t.tid ? ', TID' : '') + ')</span>: ' + t.acts.map(a => esc(a.n) + (a.custom && a.custom.length ? ' <span class="text-muted">(+' + a.custom.length + ')</span>' : '')).join(', ') + '</div>').join('');
 }
 function renderCatEditor() {
   $('#catList').innerHTML = catDraft.map((t, ti) =>
@@ -1449,12 +1601,20 @@ function renderCatEditor() {
       '<button type="button" class="btn btn-sm btn-outline-danger border-0 c-del" aria-label="Remove category"><i class="bi bi-trash3"></i></button></div>' +
       '<div class="form-check small mb-2"><input class="form-check-input c-tid" type="checkbox" id="ctid' + ti + '"' + (t.tid ? ' checked' : '') + '><label class="form-check-label" for="ctid' + ti + '">Ask for TID</label></div>' +
       t.acts.map((a, ai) =>
-        '<div class="mb-2" data-ai="' + ai + '"><div class="d-flex gap-2 mb-1"><input class="form-control form-control-sm a-name" maxlength="40" placeholder="Activity" value="' + esc(a.n) + '">' +
+        '<div class="mb-3 pb-2 border-bottom" data-ai="' + ai + '"><div class="d-flex gap-2 mb-1"><input class="form-control form-control-sm a-name" maxlength="40" placeholder="Activity" value="' + esc(a.n) + '">' +
         '<button type="button" class="btn btn-sm btn-outline-danger border-0 a-del" aria-label="Remove activity"><i class="bi bi-x-lg"></i></button></div>' +
         '<div class="chips"><button type="button" class="chip a-flag' + (a.inst ? ' active' : '') + '" data-f="inst">Installed wording</button>' +
         '<button type="button" class="chip a-flag' + (a.contact ? ' active' : '') + '" data-f="contact">Phone + Tag</button>' +
         '<button type="button" class="chip a-flag' + (a.replace ? ' active' : '') + '" data-f="replace">Old / New S/N</button>' +
-        '<button type="button" class="chip a-flag' + (a.bizinfo ? ' active' : '') + '" data-f="bizinfo">Business info</button></div></div>').join('') +
+        '<button type="button" class="chip a-flag' + (a.bizinfo ? ' active' : '') + '" data-f="bizinfo">Business info</button></div>' +
+        reqChips(a) +
+        '<div class="small text-muted mt-2">Extra boxes</div>' +
+        (a.custom || []).map((f, ci) =>
+          '<div class="d-flex gap-1 mb-1 align-items-center" data-ci="' + ci + '"><input class="form-control form-control-sm cf-label" maxlength="30" placeholder="Box name" value="' + esc(f.label) + '">' +
+          '<select class="form-select form-select-sm cf-kind" style="max-width:112px">' + CF_KINDS.map(k => '<option value="' + k[0] + '"' + (f.kind === k[0] ? ' selected' : '') + '>' + k[1] + '</option>').join('') + '</select>' +
+          '<button type="button" class="chip cf-req' + (f.req ? ' active' : '') + '">Must</button>' +
+          '<button type="button" class="btn btn-sm btn-outline-danger border-0 cf-del" aria-label="Remove box"><i class="bi bi-x"></i></button></div>').join('') +
+        '<button type="button" class="btn btn-soft btn-sm cf-add mt-1"><i class="bi bi-plus-lg me-1"></i>Box</button></div>').join('') +
       '<button type="button" class="btn btn-soft btn-sm c-addact"><i class="bi bi-plus-lg me-1"></i>Activity</button></div>').join('');
 }
 $('#catEditBtn').addEventListener('click', () => {
@@ -1466,15 +1626,23 @@ $('#catList').addEventListener('input', e => {
   if (e.target.classList.contains('c-name')) t.name = e.target.value;
   else if (e.target.classList.contains('c-code')) t.code = e.target.value.toUpperCase();
   else if (e.target.classList.contains('a-name')) t.acts[+e.target.closest('[data-ai]').dataset.ai].n = e.target.value;
+  else if (e.target.classList.contains('cf-label')) t.acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].label = e.target.value;
 });
-$('#catList').addEventListener('change', e => { if (e.target.classList.contains('c-tid')) catDraft[+e.target.closest('[data-ti]').dataset.ti].tid = e.target.checked; });
+$('#catList').addEventListener('change', e => {
+  if (e.target.classList.contains('c-tid')) catDraft[+e.target.closest('[data-ti]').dataset.ti].tid = e.target.checked;
+  else if (e.target.classList.contains('cf-kind')) catDraft[+e.target.closest('[data-ti]').dataset.ti].acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].kind = e.target.value;
+});
 $('#catList').addEventListener('click', e => {
   const box = e.target.closest('[data-ti]'); if (!box) return; const ti = +box.dataset.ti, t = catDraft[ti];
   const ab = e.target.closest('[data-ai]'), ai = ab ? +ab.dataset.ai : -1;
   if (e.target.closest('.c-del')) { catDraft.splice(ti, 1); renderCatEditor(); }
   else if (e.target.closest('.c-addact')) { t.acts.push({ n: '' }); renderCatEditor(); }
   else if (e.target.closest('.a-del')) { t.acts.splice(ai, 1); renderCatEditor(); }
-  else if (e.target.closest('.a-flag')) { const f = e.target.closest('.a-flag').dataset.f; t.acts[ai][f] = !t.acts[ai][f]; e.target.closest('.a-flag').classList.toggle('active', !!t.acts[ai][f]); }
+  else if (e.target.closest('.a-flag')) { const f = e.target.closest('.a-flag').dataset.f; t.acts[ai][f] = !t.acts[ai][f]; renderCatEditor(); }
+  else if (e.target.closest('.a-req')) { const k = e.target.closest('.a-req').dataset.k, a = t.acts[ai]; a.req = a.req || {}; a.req[k] = !isReq(a, k); e.target.closest('.a-req').classList.toggle('active', a.req[k]); }
+  else if (e.target.closest('.cf-add')) { const a = t.acts[ai]; a.custom = a.custom || []; if (a.custom.length >= 8) { toast('At most 8 extra boxes per activity.', 'warning'); return; } a.custom.push({ id: 'f' + (++catSeq).toString(36) + Math.random().toString(36).slice(2, 6), label: '', kind: 'text', req: false }); renderCatEditor(); }
+  else if (e.target.closest('.cf-del')) { t.acts[ai].custom.splice(+e.target.closest('[data-ci]').dataset.ci, 1); renderCatEditor(); }
+  else if (e.target.closest('.cf-req')) { const f = t.acts[ai].custom[+e.target.closest('[data-ci]').dataset.ci]; f.req = !f.req; e.target.closest('.cf-req').classList.toggle('active', f.req); }
 });
 $('#catSave').addEventListener('click', async () => {
   const btn = $('#catSave'), err = $('#catError'); show(err, false); busy(btn, true, 'Saving…');
@@ -1569,6 +1737,7 @@ function updateEditDateLabel() {
   const t = S.last ? S.last.type : curType, a = $('#eAct').value, d = actDef(t, a);
   $('#eDateLbl').textContent = dateLabel(a, t).replace('Installed / action date', 'Date');
   show($('#eReplaceWrap'), !!(d && d.replace)); show($('#eContactWrap'), !!(d && d.contact)); show($('#eBizWrap'), !!(d && d.bizinfo));
+  markRequired($('#editModal'), d); renderCustom($('#eCustom'), d);
 }
 function openEdit() {
   const r = S.last; if (!r) return;
@@ -1586,6 +1755,7 @@ function openEdit() {
   $('#bizTypeList').innerHTML = BIZ_TYPES.map(t => '<option value="' + esc(t) + '">').join('');
   const hm = /(\d{2}:\d{2}) ?- ?(\d{2}:\d{2})/.exec(r.hours || ''); $('#eOpen').value = hm ? hm[1] : ''; $('#eClose').value = hm ? hm[2] : '';
   $('#eBType').value = r.btype || ''; $('#eGroup').value = r.group || '';
+  { const d0 = actDef(r.type, r.activity); renderCustom($('#eCustom'), d0); const mp = {}; String(r.extra || '').split(' | ').forEach(x => { const i = x.indexOf(': '); if (i > 0) mp[x.slice(0, i)] = x.slice(i + 2); }); ((d0 && d0.custom) || []).forEach(f => { const el = $('[data-fid="' + f.id + '"]', $('#eCustom')); if (el && mp[f.label] != null) el.value = mp[f.label]; }); }
   $('#ePhone').value = r.phone || ''; $('#eTag').value = r.tag || ''; $('#eOldSn').value = r.oldSn || ''; $('#eNewSn').value = r.newSn || '';
   updateEditDateLabel();
   editModal.show();
@@ -1600,7 +1770,7 @@ $('#editForm').addEventListener('submit', async e => {
     const r = await api('updateLastRecord', S.token, {
       stamp: $('#eStamp').value, activity: $('#eAct').value, date: $('#eDate').value, merchant: $('#eName').value.trim(),
       mid: $('#eMid').value.trim(), tid: $('#eTid').value.trim(), business: $('#eBiz').value.trim(), remarks: $('#eRem').value.trim(),
-      btype: $('#eBType').value.trim(), group: $('#eGroup').value.trim(), hours: $('#eOpen').value && $('#eClose').value ? $('#eOpen').value + ' - ' + $('#eClose').value : '',
+      extra: Object.fromEntries($$('#eCustom [data-fid]').map(i => [i.dataset.fid, i.value.trim()])), btype: $('#eBType').value.trim(), group: $('#eGroup').value.trim(), hours: $('#eOpen').value && $('#eClose').value ? $('#eOpen').value + ' - ' + $('#eClose').value : '',
       phone: $('#ePhone').value.trim(), tag: $('#eTag').value.trim(), oldSn: $('#eOldSn').value.trim(), newSn: $('#eNewSn').value.trim()
     });
     S.last = r.record; renderLast(); editModal.hide();
