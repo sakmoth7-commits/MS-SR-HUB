@@ -414,6 +414,7 @@
         <div class="mb-3" id="eTidWrap"><label class="form-label">TID</label><input id="eTid" class="form-control" autocapitalize="characters" autocomplete="off"></div>
         <div class="mb-3 e-business-wrap"><label class="form-label e-field-label-business">Business name</label><input id="eBiz" class="form-control"></div>
         <div id="eReplaceWrap" class="row g-2 mb-3 hidden"><div class="col-6"><label class="form-label">Old S/N<span class="rq text-danger hidden" data-k="oldSn"> *</span></label><div class="input-group"><input id="eOldSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div><div class="col-6"><label class="form-label">New S/N<span class="rq text-danger hidden" data-k="newSn"> *</span></label><div class="input-group"><input id="eNewSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div></div>
+        <div class="mb-3 e-bi-originSn hidden"><label class="form-label">Origin S/N</label><div class="input-group"><input id="eOriginSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>
         <div id="eBizWrap" class="hidden"><div class="mb-3"><label class="form-label">Business type<span class="rq text-danger hidden" data-k="btype"> *</span></label><input id="eBType" class="form-control" maxlength="60" list="bizTypeList"><datalist id="bizTypeList"></datalist></div>
           <div class="mb-3"><label class="form-label">Business hours<span class="rq text-danger hidden" data-k="hours"> *</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" id="eOpen" class="form-control"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" id="eClose" class="form-control"></div></div></div>
           <div class="mb-3"><label class="form-label">Group name<span class="rq text-danger hidden" data-k="group"> *</span></label><input id="eGroup" class="form-control" maxlength="100"></div></div>
@@ -631,9 +632,7 @@ function setAct(card, a) {
   $('.f-act', card.el).value = a;
   $$('.act-chips .chip', card.el).forEach(b => b.classList.toggle('active', b.dataset.a === a));
   const d = actDef(curType, a);
-  show($('.contact-wrap', card.el), !!(d && d.contact));
-  show($('.replace-wrap', card.el), !!(d && d.replace));
-  show($('.biz-wrap', card.el), !!(d && d.bizinfo));
+  ['phone','tag','oldSn','newSn','originSn','btype','hours','group'].forEach(k => show($('.bi-'+k, card.el), builtInShown(d,k)));
   markRequired(card.el, d); renderCustom($('.custom-wrap', card.el), d);
   applyActivityFields(card, d);
   updateDateLabel(card);
@@ -658,7 +657,7 @@ function setType(t) {
 }
 
 // Paste your Apps Script Web app URL (ends with /exec) here:
-const API_URL = 'https://script.google.com/macros/s/AKfycbwzwih-6aEYW0Q21f8GPvkSgpNrpK0Nr4nsRr07zOIANdMvPxROV3IcfCESNMEd7uVjRQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbww--NYFM4D_ndQiDKewYmVGEidNvdLzU8_IKyTMolXMvbkM5KR7pqG1uJZ0rabMj8YIg/exec';
 
 async function api(fn, ...args) {
   let json;
@@ -946,14 +945,15 @@ function addMerchant() {
     '<div class="mb-3 mid-wrap"><label class="form-label field-label-mid">MID</label><input class="form-control f-mid" inputmode="text" placeholder="Auto-filled from KHQR"></div>' +
     '<div class="mb-3 tid-wrap hidden"><label class="form-label">TID <span class="text-danger fw-bold">*</span> <span class="text-lowercase fw-normal">(terminal ID, required)</span></label><input class="form-control f-tid" autocapitalize="characters" autocomplete="off" placeholder="Auto-filled from KHQR, or type it"></div>' +
     '<div class="mb-3 business-wrap"><label class="form-label field-label-business">Business name</label><input class="form-control f-biz" value="N/A"></div>' +
-    '<div class="biz-wrap hidden"><div class="mb-3"><label class="form-label">Business type<span class="rq text-danger hidden" data-k="btype"> *</span></label><input class="form-control f-btype mb-2" maxlength="60" autocomplete="off" placeholder="Type, or tap one below">' +
+    '<div class="mb-3 bi-btype hidden"><label class="form-label">Business type<span class="rq text-danger hidden" data-k="btype"> *</span></label><input class="form-control f-btype mb-2" maxlength="60" autocomplete="off" placeholder="Type, or tap one below">' +
       '<div class="chips btype-chips">' + BIZ_TYPES.map(t => '<button type="button" class="chip" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div></div>' +
-      '<div class="mb-3"><label class="form-label">Business hours<span class="rq text-danger hidden" data-k="hours"> *</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" class="form-control f-open" aria-label="Opens"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" class="form-control f-close" aria-label="Closes"></div></div></div>' +
-      '<div class="mb-3"><label class="form-label">Group name<span class="rq text-danger hidden" data-k="group"> *</span></label><input class="form-control f-group" maxlength="100" autocomplete="off" placeholder="e.g. owner / chain / group name"></div></div>' +
-    '<div class="replace-wrap hidden row g-2 mb-3"><div class="col-6"><label class="form-label">Old S/N<span class="rq text-danger hidden" data-k="oldSn"> *</span></label><div class="input-group"><input class="form-control f-old" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
-      '<div class="col-6"><label class="form-label">New S/N<span class="rq text-danger hidden" data-k="newSn"> *</span></label><div class="input-group"><input class="form-control f-new" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div></div>' +
+      '<div class="mb-3 bi-hours hidden"><label class="form-label">Business hours<span class="rq text-danger hidden" data-k="hours"> *</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" class="form-control f-open" aria-label="Opens"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" class="form-control f-close" aria-label="Closes"></div></div></div>' +
+      '<div class="mb-3 bi-group hidden"><label class="form-label">Merchant group<span class="rq text-danger hidden" data-k="group"> *</span></label><input class="form-control f-group" maxlength="100" autocomplete="off" placeholder="e.g. owner / chain / group name"></div></div>' +
+    '<div class="row g-2 mb-3"><div class="col-6 bi-oldSn hidden"><label class="form-label">Old S/N<span class="rq text-danger hidden" data-k="oldSn"> *</span></label><div class="input-group"><input class="form-control f-old" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
+      '<div class="col-6 bi-newSn hidden"><label class="form-label">New S/N<span class="rq text-danger hidden" data-k="newSn"> *</span></label><div class="input-group"><input class="form-control f-new" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div></div>' +
+    '<div class="mb-3 bi-originSn hidden"><label class="form-label">Origin S/N<span class="rq text-danger hidden" data-k="originSn"> *</span></label><div class="input-group"><input class="form-control f-origin" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
     '<div class="contact-wrap hidden"><div class="mb-3"><label class="form-label">Phone number<span class="rq text-danger hidden" data-k="phone"> *</span></label><input class="form-control f-phone" type="tel" inputmode="tel" autocomplete="off" placeholder="e.g. 012 345 678"></div>' +
-      '<div class="mb-3"><label class="form-label">Tag<span class="rq text-danger hidden" data-k="tag"> *</span></label><input class="form-control f-tag" maxlength="200" autocomplete="off" placeholder="Extra remark / tag"></div></div>' +
+      '<div class="mb-3 bi-tag hidden"><label class="form-label">Tag<span class="rq text-danger hidden" data-k="tag"> *</span></label><input class="form-control f-tag" maxlength="200" autocomplete="off" placeholder="Extra remark / tag"></div>' +
     '<div class="custom-wrap hidden"></div>' +
     '<div class="mb-3 remarks-wrap"><label class="form-label field-label-remarks">Remark</label><textarea class="form-control f-rem" rows="2"></textarea></div>' +
     '<div class="photos-wrap"><label class="form-label field-label-photos">Photo</label><span class="text-lowercase fw-normal small text-muted"> (max ' + MAX_PHOTOS + ')</span>' +
@@ -1280,19 +1280,19 @@ $('#submitBtn').addEventListener('click', async () => {
     }
     const merchantCfg = fieldCfg(ad, 'merchant'), midCfg = fieldCfg(ad, 'mid');
     if ((!merchantCfg.show || !g('.f-name')) && (!midCfg.show || !g('.f-mid')) && !merchantCfg.req && !midCfg.req) { bad('enter a merchant name or MID.'); return; }
-    if (ad && ad.contact) {
+    if (builtInShown(ad,'phone')) {
       if (rq('phone') && !g('.f-phone')) { bad('enter the phone number.', '.f-phone'); return; }
       if (g('.f-phone') && !PHONE_RE.test(g('.f-phone'))) { bad('the phone number looks wrong.', '.f-phone'); return; }
-      if (rq('tag') && !g('.f-tag')) { bad('enter the Tag.', '.f-tag'); return; }
+      if (builtInShown(ad,'tag') && rq('tag') && !g('.f-tag')) { bad('enter the Tag.', '.f-tag'); return; }
     }
-    if (ad && ad.replace) {
-      if (rq('oldSn') && !g('.f-old')) { bad('enter the Old S/N.', '.f-old'); return; }
-      if (rq('newSn') && !g('.f-new')) { bad('enter the New S/N.', '.f-new'); return; }
+    if (builtInShown(ad,'oldSn') || builtInShown(ad,'newSn') || builtInShown(ad,'originSn')) {
+      if (builtInShown(ad,'oldSn') && rq('oldSn') && !g('.f-old')) { bad('enter the Old S/N.', '.f-old'); return; }
+      if (builtInShown(ad,'newSn') && rq('newSn') && !g('.f-new')) { bad('enter the New S/N.', '.f-new'); return; }
     }
-    if (ad && ad.bizinfo) {
-      if (rq('btype') && !g('.f-btype')) { bad('enter the business type.', '.f-btype'); return; }
-      if ((rq('hours') && !g('.f-open')) || (!!g('.f-open') !== !!g('.f-close'))) { bad('enter both opening and closing time.', g('.f-open') ? '.f-close' : '.f-open'); return; }
-      if (rq('group') && !g('.f-group')) { bad('enter the group name.', '.f-group'); return; }
+    if (builtInShown(ad,'btype') || builtInShown(ad,'hours') || builtInShown(ad,'group')) {
+      if (builtInShown(ad,'btype') && rq('btype') && !g('.f-btype')) { bad('enter the business type.', '.f-btype'); return; }
+      if ((builtInShown(ad,'hours') && rq('hours') && !g('.f-open')) || (builtInShown(ad,'hours') && (!!g('.f-open') !== !!g('.f-close')))) { bad('enter both opening and closing time.', g('.f-open') ? '.f-close' : '.f-open'); return; }
+      if (builtInShown(ad,'group') && rq('group') && !g('.f-group')) { bad('enter the group name.', '.f-group'); return; }
     }
     const extra = {};
     for (const f of ((ad && ad.custom) || [])) {
@@ -1304,8 +1304,8 @@ $('#submitBtn').addEventListener('click', async () => {
     }
     if (fieldCfg(ad, 'photos').show && fieldCfg(ad, 'photos').req && !c.photos.length) { bad('attach at least one photo.'); return; }
     items.push({ type: curType, activity: g('.f-act'), tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: fieldCfg(ad, 'business').show ? (g('.f-biz') || 'N/A') : 'N/A', merchant: fieldCfg(ad, 'merchant').show ? g('.f-name') : '', mid: fieldCfg(ad, 'mid').show ? g('.f-mid') : '', remarks: fieldCfg(ad, 'remarks').show ? g('.f-rem') : '', extra,
-      phone: ad && ad.contact ? g('.f-phone') : '', tag: ad && ad.contact ? g('.f-tag') : '', oldSn: ad && ad.replace ? g('.f-old') : '', newSn: ad && ad.replace ? g('.f-new') : '',
-      btype: ad && ad.bizinfo ? g('.f-btype') : '', hours: ad && ad.bizinfo && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', group: ad && ad.bizinfo ? g('.f-group') : '', photos: c.photos });
+      phone: builtInShown(ad,'phone') ? g('.f-phone') : '', tag: builtInShown(ad,'tag') ? g('.f-tag') : '', oldSn: builtInShown(ad,'oldSn') ? g('.f-old') : '', newSn: builtInShown(ad,'newSn') ? g('.f-new') : '', originSn: builtInShown(ad,'originSn') ? g('.f-origin') : '',
+      btype: builtInShown(ad,'btype') ? g('.f-btype') : '', hours: builtInShown(ad,'hours') && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', group: builtInShown(ad,'group') ? g('.f-group') : '', photos: c.photos });
   }
   const btn = $('#submitBtn');
   busy(btn, true, 'Submitting…');
@@ -1621,7 +1621,7 @@ $('#tplSend').addEventListener('click', async () => {
 const catModal = new bootstrap.Modal($('#catModal'));
 let catDraft = [], catSeq = 0;
 const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date']];
-const REQ_LABELS = { phone: 'Phone', tag: 'Tag', oldSn: 'Old S/N', newSn: 'New S/N', btype: 'Type', hours: 'Hours', group: 'Group' };
+const REQ_LABELS = { phone: 'Phone', tag: 'Tag', oldSn: 'Old S/N', newSn: 'New S/N', originSn: 'Origin S/N', btype: 'Business Type', hours: 'Business Hours', group: 'Merchant Group' };
 function fieldSettingsHtml(a, categoryName) {
   const keys = ['merchant', 'mid', 'remarks', 'photos', 'business'];
   return '<div class="small text-muted mt-2">Fields for this activity (tap Show / Must)</div><div class="d-flex flex-wrap gap-1 mt-1">' +
@@ -1633,8 +1633,12 @@ function fieldSettingsHtml(a, categoryName) {
     }).join('') + '</div>';
 }
 /** "Must fill" switches for the built-in boxes this activity shows. */
+function builtInShown(a,k) {
+  const legacy = ({phone:'contact',tag:'contact',oldSn:'replace',newSn:'replace',originSn:'replace',btype:'bizinfo',hours:'bizinfo',group:'bizinfo'})[k];
+  return !!(a && (typeof a[k] === 'boolean' ? a[k] : a[legacy]));
+}
 function reqChips(a) {
-  const ks = [].concat(a.contact ? ['phone', 'tag'] : [], a.replace ? ['oldSn', 'newSn'] : [], a.bizinfo ? ['btype', 'hours', 'group'] : []);
+  const ks = ['phone','tag','oldSn','newSn','originSn','btype','hours','group'].filter(k => builtInShown(a,k));
   if (!ks.length) return '';
   return '<div class="small text-muted mt-2">Must fill</div><div class="chips">' + ks.map(k => '<button type="button" class="chip a-req' + (isReq(a, k) ? ' active' : '') + '" data-k="' + k + '">' + REQ_LABELS[k] + '</button>').join('') + '</div>';
 }
@@ -1652,9 +1656,7 @@ function renderCatEditor() {
         '<div class="mb-3 pb-2 border-bottom" data-ai="' + ai + '"><div class="d-flex gap-2 mb-1"><input class="form-control form-control-sm a-name" maxlength="40" placeholder="Activity" value="' + esc(a.n) + '">' +
         '<button type="button" class="btn btn-sm btn-outline-danger border-0 a-del" aria-label="Remove activity"><i class="bi bi-x-lg"></i></button></div>' +
         '<div class="chips"><button type="button" class="chip a-flag' + (a.inst ? ' active' : '') + '" data-f="inst">Installed wording</button>' +
-        '<button type="button" class="chip a-flag' + (a.contact ? ' active' : '') + '" data-f="contact">Phone + Tag</button>' +
-        '<button type="button" class="chip a-flag' + (a.replace ? ' active' : '') + '" data-f="replace">Old / New S/N</button>' +
-        '<button type="button" class="chip a-flag' + (a.bizinfo ? ' active' : '') + '" data-f="bizinfo">Business info</button></div>' +
+        ['phone','tag','oldSn','newSn','originSn','btype','hours','group'].map(k => '<button type="button" class="chip a-flag' + (builtInShown(a,k) ? ' active' : '') + '" data-f="' + k + '">' + REQ_LABELS[k] + '</button>').join('') + '</div>' +
         reqChips(a) +
         '<div class="small text-muted mt-2">Extra boxes</div>' +
         (a.custom || []).map((f, ci) =>
@@ -1686,7 +1688,7 @@ $('#catList').addEventListener('click', e => {
   if (e.target.closest('.c-del')) { catDraft.splice(ti, 1); renderCatEditor(); }
   else if (e.target.closest('.c-addact')) { t.acts.push({ n: '' }); renderCatEditor(); }
   else if (e.target.closest('.a-del')) { t.acts.splice(ai, 1); renderCatEditor(); }
-  else if (e.target.closest('.a-flag')) { const f = e.target.closest('.a-flag').dataset.f; t.acts[ai][f] = !t.acts[ai][f]; renderCatEditor(); }
+  else if (e.target.closest('.a-flag')) { const f = e.target.closest('.a-flag').dataset.f, a=t.acts[ai]; a[f] = !builtInShown(a,f); renderCatEditor(); }
   else if (e.target.closest('.a-req')) { const k = e.target.closest('.a-req').dataset.k, a = t.acts[ai]; a.req = a.req || {}; a.req[k] = !isReq(a, k); e.target.closest('.a-req').classList.toggle('active', a.req[k]); }
   else if (e.target.closest('.a-field-show') || e.target.closest('.a-field-req')) {
     const btn = e.target.closest('.a-field-show, .a-field-req'), k = btn.dataset.k, mode = btn.dataset.mode, a = t.acts[ai];
@@ -1807,7 +1809,7 @@ const editModal = new bootstrap.Modal($('#editModal'));
 function updateEditDateLabel() {
   const t = S.last ? S.last.type : curType, a = $('#eAct').value, d = actDef(t, a);
   $('#eDateLbl').textContent = dateLabel(a, t).replace('Installed / action date', 'Date');
-  show($('#eReplaceWrap'), !!(d && d.replace)); show($('#eContactWrap'), !!(d && d.contact)); show($('#eBizWrap'), !!(d && d.bizinfo));
+  ['phone','tag','oldSn','newSn','originSn','btype','hours','group'].forEach(k => show($('.e-bi-'+k), builtInShown(d,k)));
   markRequired($('#editModal'), d); renderCustom($('#eCustom'), d);
   const cfgs = { merchant: '.e-name-wrap', mid: '.e-mid-wrap', remarks: '.e-remarks-wrap', business: '.e-business-wrap' };
   Object.keys(cfgs).forEach(k => {
@@ -1834,7 +1836,7 @@ function openEdit() {
   const hm = /(\d{2}:\d{2}) ?- ?(\d{2}:\d{2})/.exec(r.hours || ''); $('#eOpen').value = hm ? hm[1] : ''; $('#eClose').value = hm ? hm[2] : '';
   $('#eBType').value = r.btype || ''; $('#eGroup').value = r.group || '';
   { const d0 = actDef(r.type, r.activity); renderCustom($('#eCustom'), d0); const mp = {}; String(r.extra || '').split(' | ').forEach(x => { const i = x.indexOf(': '); if (i > 0) mp[x.slice(0, i)] = x.slice(i + 2); }); ((d0 && d0.custom) || []).forEach(f => { const el = $('[data-fid="' + f.id + '"]', $('#eCustom')); if (el && mp[f.label] != null) el.value = mp[f.label]; }); }
-  $('#ePhone').value = r.phone || ''; $('#eTag').value = r.tag || ''; $('#eOldSn').value = r.oldSn || ''; $('#eNewSn').value = r.newSn || '';
+  $('#ePhone').value = r.phone || ''; $('#eTag').value = r.tag || ''; $('#eOldSn').value = r.oldSn || ''; $('#eNewSn').value = r.newSn || ''; $('#eOriginSn').value = r.originSn || '';
   updateEditDateLabel();
   editModal.show();
 }
@@ -1849,7 +1851,7 @@ $('#editForm').addEventListener('submit', async e => {
       stamp: $('#eStamp').value, activity: $('#eAct').value, date: $('#eDate').value, merchant: $('#eName').value.trim(),
       mid: $('#eMid').value.trim(), tid: $('#eTid').value.trim(), business: $('#eBiz').value.trim(), remarks: $('#eRem').value.trim(),
       extra: Object.fromEntries($$('#eCustom [data-fid]').map(i => [i.dataset.fid, i.value.trim()])), btype: $('#eBType').value.trim(), group: $('#eGroup').value.trim(), hours: $('#eOpen').value && $('#eClose').value ? $('#eOpen').value + ' - ' + $('#eClose').value : '',
-      phone: $('#ePhone').value.trim(), tag: $('#eTag').value.trim(), oldSn: $('#eOldSn').value.trim(), newSn: $('#eNewSn').value.trim()
+      phone: $('#ePhone').value.trim(), tag: $('#eTag').value.trim(), oldSn: $('#eOldSn').value.trim(), newSn: $('#eNewSn').value.trim(), originSn: $('#eOriginSn').value.trim()
     });
     S.last = r.record; renderLast(); editModal.hide();
     toast('Saved. Telegram: ' + r.telegram, r.telegram === 'updated' ? 'success' : 'warning');
