@@ -58,6 +58,21 @@
     .summary .num { font-size: 2.4rem; font-weight: 800; line-height: 1; color: var(--brand); }
     .summary .ico { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: #eef2ff; color: var(--brand); font-size: 1.5rem; }
     .summary small { color: var(--muted); }
+    .sum-break { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+    .sum-cat { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: .9rem; margin-top: 8px; }
+    .sum-cat .cnt { background: #eef2ff; color: var(--brand); border-radius: 999px; padding: 1px 10px; min-width: 30px; text-align: center; }
+    .sum-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+    .sum-act { font-size: .76rem; border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 10px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+    .sum-act b { background: var(--line); color: inherit; border-radius: 999px; padding: 0 7px; font-weight: 700; }
+    .sum-act.on { color: var(--brand); border-color: var(--brand); }
+    .sum-act.on b { background: var(--brand); color: #fff; }
+    .fl-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: .82rem; }
+    .fl-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }
+    .fl-seg button { border: 0; background: transparent; color: var(--muted); font-size: .72rem; font-weight: 700; padding: 3px 9px; }
+    .fl-seg button.active[data-v="0"] { background: #94a3b8; color: #fff; }
+    .fl-seg button.active[data-v="1"] { background: var(--brand); color: #fff; }
+    .fl-seg button.active[data-v="2"] { background: #dc2626; color: #fff; }
+    .rq { color: #dc2626; font-weight: 700; }
 
     /* Form */
     .form-label { font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
@@ -197,14 +212,16 @@
 
   <main class="wrap">
     <!-- Summary -->
-    <div class="card-x summary">
-      <div class="ico"><i class="bi bi-calendar-check"></i></div>
-      <div class="flex-grow-1">
-        <small id="sumLabel">Your activities today</small>
-        <div class="num" id="sumNum">–</div>
-        <div id="sumBreakdown" class="small text-muted mt-2"></div>
+    <div class="card-x">
+      <div class="summary">
+        <div class="ico"><i class="bi bi-calendar-check"></i></div>
+        <div class="flex-grow-1">
+          <small id="sumLabel">Your activities today</small>
+          <div class="num" id="sumNum">–</div>
+        </div>
+        <div class="text-end"><small class="d-block">All time</small><strong id="sumTotal">–</strong></div>
       </div>
-      <div class="text-end"><small class="d-block">All time</small><strong id="sumTotal">–</strong></div>
+      <div id="sumBreak" class="sum-break hidden"></div>
     </div>
 
     <!-- NEW -->
@@ -269,7 +286,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-hover mb-0">
-            <thead><tr><th>Category</th><th>Activity</th><th>Stamp</th><th>Date</th><th>Staff</th><th>Merchant</th><th>MID</th><th>TID</th><th>Business</th><th>Type</th><th>Hours</th><th>Group</th><th>Extra</th><th>Phone</th><th>Tag</th><th>Old S/N</th><th>New S/N</th><th>Remarks</th><th>Location</th><th>📷</th></tr></thead>
+            <thead><tr><th>Category</th><th>Activity</th><th>Stamp</th><th>Date</th><th>Staff</th><th>Merchant</th><th>MID</th><th>TID</th><th>Business</th><th>Type</th><th>Hours</th><th>Group</th><th>Extra</th><th>Phone</th><th>Tag</th><th>Serial No</th><th>Old S/N</th><th>New S/N</th><th>Remarks</th><th>Location</th><th>📷</th></tr></thead>
             <tbody id="recBody"></tbody>
           </table>
         </div>
@@ -407,20 +424,22 @@
       <div class="modal-body">
         <input type="hidden" id="eStamp">
         <div class="small text-muted mb-3" id="eStampTxt"></div>
-        <div class="mb-3" id="eActWrap"><label class="form-label">Activity</label><select id="eAct" class="form-select"></select></div>
-        <div class="mb-3"><label class="form-label" id="eDateLbl">Date</label><input type="date" id="eDate" class="form-control"></div>
-        <div class="mb-3 e-name-wrap"><label class="form-label e-field-label-merchant">Merchant name</label><input id="eName" class="form-control"></div>
-        <div class="mb-3 e-mid-wrap"><label class="form-label e-field-label-mid">MID</label><input id="eMid" class="form-control"></div>
-        <div class="mb-3" id="eTidWrap"><label class="form-label">TID</label><input id="eTid" class="form-control" autocapitalize="characters" autocomplete="off"></div>
-        <div class="mb-3 e-business-wrap"><label class="form-label e-field-label-business">Business name</label><input id="eBiz" class="form-control"></div>
-        <div id="eReplaceWrap" class="row g-2 mb-3 hidden"><div class="col-6"><label class="form-label">Old S/N<span class="rq text-danger hidden" data-k="oldSn"> *</span></label><div class="input-group"><input id="eOldSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div><div class="col-6"><label class="form-label">New S/N<span class="rq text-danger hidden" data-k="newSn"> *</span></label><div class="input-group"><input id="eNewSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div></div>
-        <div class="mb-3 e-bi-originSn hidden"><label class="form-label">Origin S/N</label><div class="input-group"><input id="eOriginSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>
-        <div id="eBizWrap" class="hidden"><div class="mb-3"><label class="form-label">Business type<span class="rq text-danger hidden" data-k="btype"> *</span></label><input id="eBType" class="form-control" maxlength="60" list="bizTypeList"><datalist id="bizTypeList"></datalist></div>
-          <div class="mb-3"><label class="form-label">Business hours<span class="rq text-danger hidden" data-k="hours"> *</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" id="eOpen" class="form-control"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" id="eClose" class="form-control"></div></div></div>
-          <div class="mb-3"><label class="form-label">Group name<span class="rq text-danger hidden" data-k="group"> *</span></label><input id="eGroup" class="form-control" maxlength="100"></div></div>
-        <div id="eContactWrap" class="hidden"><div class="mb-3"><label class="form-label">Phone number<span class="rq text-danger hidden" data-k="phone"> *</span></label><input id="ePhone" class="form-control" type="tel" inputmode="tel"></div><div class="mb-3"><label class="form-label">Tag<span class="rq text-danger hidden" data-k="tag"> *</span></label><input id="eTag" class="form-control" maxlength="200"></div></div>
+        <div class="mb-3" id="eActWrap"><label class="form-label">Activity <span class="rq">*</span></label><select id="eAct" class="form-select"></select></div>
+        <div class="mb-3"><label class="form-label"><span id="eDateLbl">Date</span> <span class="rq">*</span></label><input type="date" id="eDate" class="form-control"></div>
+        <div class="mb-3 hidden" data-fk="merchant"><label class="form-label">Merchant name <span class="rq hidden">*</span></label><input id="eName" class="form-control"></div>
+        <div class="mb-3 hidden" data-fk="mid"><label class="form-label">MID <span class="rq hidden">*</span></label><input id="eMid" class="form-control"></div>
+        <div class="mb-3 hidden" data-fk="tid"><label class="form-label">TID <span class="rq hidden">*</span></label><input id="eTid" class="form-control" autocapitalize="characters" autocomplete="off"></div>
+        <div class="mb-3 hidden" data-fk="business"><label class="form-label">Business name <span class="rq hidden">*</span></label><input id="eBiz" class="form-control" placeholder="N/A"></div>
+        <div class="mb-3 hidden" data-fk="serial"><label class="form-label">Serial number <span class="rq hidden">*</span></label><div class="input-group"><input id="eSerial" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>
+        <div class="mb-3 hidden" data-fk="oldSn"><label class="form-label">Old S/N <span class="rq hidden">*</span></label><div class="input-group"><input id="eOldSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>
+        <div class="mb-3 hidden" data-fk="newSn"><label class="form-label">New S/N <span class="rq hidden">*</span></label><div class="input-group"><input id="eNewSn" class="form-control" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>
+        <div class="mb-3 hidden" data-fk="btype"><label class="form-label">Business type <span class="rq hidden">*</span></label><input id="eBType" class="form-control" maxlength="60" list="bizTypeList"><datalist id="bizTypeList"></datalist></div>
+        <div class="mb-3 hidden" data-fk="hours"><label class="form-label">Business hours <span class="rq hidden">*</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" id="eOpen" class="form-control"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" id="eClose" class="form-control"></div></div></div>
+        <div class="mb-3 hidden" data-fk="group"><label class="form-label">Group name <span class="rq hidden">*</span></label><input id="eGroup" class="form-control" maxlength="100"></div>
+        <div class="mb-3 hidden" data-fk="phone"><label class="form-label">Phone number <span class="rq hidden">*</span></label><input id="ePhone" class="form-control" type="tel" inputmode="tel"></div>
+        <div class="mb-3 hidden" data-fk="tag"><label class="form-label">Tag <span class="rq hidden">*</span></label><input id="eTag" class="form-control" maxlength="200"></div>
         <div id="eCustom" class="hidden"></div>
-        <div class="mb-1 e-remarks-wrap"><label class="form-label e-field-label-remarks">Remark</label><textarea id="eRem" class="form-control" rows="2"></textarea></div>
+        <div class="mb-1 hidden" data-fk="remarks"><label class="form-label">Remarks <span class="rq hidden">*</span></label><textarea id="eRem" class="form-control" rows="2"></textarea></div>
         <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Saving also updates the message in Telegram. Photos can't be changed after submitting.</div>
         <div id="eError" class="text-danger small mt-3 hidden"></div>
       </div>
@@ -556,6 +575,30 @@ const DEFAULT_CATALOG = [
     { n: 'New Install', inst: true, contact: true }, { n: 'Replace', contact: true, replace: true }] },
   { name: 'Payway Inspection', code: 'PAYWAY', tid: false, acts: [{ n: 'Inspection' }, { n: 'Merchant Inquiries' }] }
 ];
+/* Box levels per activity: 0 = hidden, 1 = optional, 2 = must fill (red *). Same rules as the server. */
+const FIELD_KEYS = ['merchant', 'mid', 'tid', 'business', 'remarks', 'photo', 'phone', 'tag', 'btype', 'hours', 'group', 'serial', 'oldSn', 'newSn'];
+const FIELD_NAMES = { merchant: 'Merchant name', mid: 'MID', tid: 'TID', business: 'Business name', remarks: 'Remarks', photo: 'Photos', phone: 'Phone number', tag: 'Tag', btype: 'Business type', hours: 'Business hours', group: 'Group name', serial: 'Serial number', oldSn: 'Old S/N', newSn: 'New S/N' };
+function legacyLevel(cat, a, k) {
+  const rq = a.req && typeof a.req === 'object' ? a.req : {};
+  const lv = (on, d) => !on ? 0 : (typeof rq[k] === 'boolean' ? (rq[k] ? 2 : 1) : d);
+  if (k === 'merchant' || k === 'mid' || k === 'photo') return 2;
+  if (k === 'tid') return cat && cat.tid ? 2 : 0;
+  if (k === 'business') return /^pos$/i.test(String(cat && cat.name)) ? 0 : 1;
+  if (k === 'remarks') return 1;
+  if (k === 'phone' || k === 'tag') return lv(a.contact, 1);
+  if (k === 'btype' || k === 'hours' || k === 'group') return lv(a.bizinfo, 1);
+  if (k === 'oldSn' || k === 'newSn') return lv(a.replace, 2);
+  return 0;
+}
+function normAct(cat, a) {
+  const o = { n: a.n }; if (a.inst) o.inst = true;
+  o.f = {}; FIELD_KEYS.forEach(k => { const v = a.f ? Number(a.f[k]) : NaN; o.f[k] = (v === 0 || v === 1 || v === 2) ? v : legacyLevel(cat, a, k); });
+  if (Array.isArray(a.custom) && a.custom.length) o.custom = a.custom;
+  return o;
+}
+const normCat = list => list.map(t => ({ name: t.name, code: t.code, acts: (t.acts || []).map(a => normAct(t, a)) }));
+const lvl = (d, k) => (d && d.f && d.f[k]) || 0;
+const isReq = (d, k) => lvl(d, k) === 2;
 let CATALOG = DEFAULT_CATALOG, TYPES = [], ACTIVITIES = {};
 const typeDef = n => CATALOG.find(t => t.name === n) || null;
 const actDef = (t, a) => { const d = typeDef(t); return d ? (d.acts.find(x => x.n === a) || null) : null; };
@@ -567,6 +610,7 @@ const shortName = n => n === 'Payway Inspection' ? 'Payway' : n;
 let curType = (function () { try { return localStorage.getItem('it_type') || 'QR'; } catch (e) { return 'QR'; } })();
 function setCatalog(c) {
   if (!Array.isArray(c) || !c.length) c = DEFAULT_CATALOG;
+  c = normCat(c);
   CATALOG = c; TYPES = c.map(t => t.name); ACTIVITIES = {};
   c.forEach(t => { ACTIVITIES[t.name] = t.acts.map(a => a.n); });
   if (!TYPES.includes(curType)) curType = TYPES[0];
@@ -590,33 +634,12 @@ function syncBtype(el) {
   const v = $('.f-btype', el).value.trim().toLowerCase();
   $$('.btype-chips .chip', el).forEach(b => b.classList.toggle('active', b.dataset.t.toLowerCase() === v));
 }
-const isReq = (d, k) => (d && d.req && typeof d.req[k] === 'boolean') ? d.req[k] : (k === 'oldSn' || k === 'newSn');
-const FIELD_LABELS = { merchant: 'Merchant name', mid: 'MID', remarks: 'Remark', photos: 'Photo', business: 'Business name' };
-function fieldCfg(d, k, typeName) {
-  const f = d && d.fields && d.fields[k];
-  if (f && typeof f.show === 'boolean') return { show: f.show, req: !!f.req };
-  // Compatibility defaults for older saved catalogs.
-  return { show: k !== 'business' || !(typeDef(typeName || curType) && typeDef(typeName || curType).code === 'POS'), req: k === 'photos' };
-}
-function fieldRequired(d, k) { return fieldCfg(d, k).req; }
-function fieldVisible(d, k) { return fieldCfg(d, k).show; }
-function requiredStar(req) { return req ? ' <span class="text-danger fw-bold">*</span>' : ''; }
-function applyActivityFields(card, d) {
-  const map = { merchant: '.name-wrap', mid: '.mid-wrap', remarks: '.remarks-wrap', photos: '.photos-wrap', business: '.business-wrap' };
-  Object.keys(map).forEach(k => {
-    const wrap = $(map[k], card.el), cfg = fieldCfg(d, k);
-    // Keep activity photo upload available by default; an explicit admin setting can still hide it.
-    if (wrap) show(wrap, k === 'photos' && !(d && d.fields && d.fields.photos && typeof d.fields.photos.show === 'boolean') ? true : cfg.show);
-    const label = wrap && $('.field-label-' + k, wrap);
-    if (label) label.innerHTML = esc(FIELD_LABELS[k]) + requiredStar(cfg.req);
-  });
-}
 const PHONE_RE = /^[0-9+\-\s()]{6,20}$/;
 /** HTML of one admin-added box. Serial boxes get a barcode-scan button. */
 function customFieldHtml(f) {
   const t = f.kind === 'date' ? 'date' : (f.kind === 'phone' ? 'tel' : 'text'), im = f.kind === 'number' ? 'decimal' : (f.kind === 'phone' ? 'tel' : 'text');
   const inp = '<input class="form-control" data-fid="' + esc(f.id) + '" data-kind="' + f.kind + '" type="' + t + '" inputmode="' + im + '" autocomplete="off"' + (f.kind === 'serial' ? ' autocapitalize="characters"' : '') + '>';
-  return '<div class="mb-3"><label class="form-label">' + esc(f.label) + (f.req ? ' <span class="text-danger">*</span>' : '') + '</label>' +
+  return '<div class="mb-3"><label class="form-label">' + esc(f.label) + (f.req ? ' <span class="rq">*</span>' : '') + '</label>' +
     (f.kind === 'serial' ? '<div class="input-group">' + inp + '<button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div>' : inp) + '</div>';
 }
 /** (Re)draws the admin-added boxes inside box, keeping what was typed. */
@@ -627,25 +650,27 @@ function renderCustom(box, d) {
   $$('[data-fid]', box).forEach(i => { if (old[i.dataset.fid] != null) i.value = old[i.dataset.fid]; });
   show(box, list.length > 0);
 }
-function markRequired(root, d) { $$('.rq', root).forEach(x => show(x, isReq(d, x.dataset.k))); }
+/** Shows only the boxes the activity needs (data-fk="key") and puts the red * on the must-fill ones. */
+function applyLevels(root, d) {
+  FIELD_KEYS.forEach(k => $$('[data-fk="' + k + '"]', root).forEach(w => { show(w, lvl(d, k) > 0); $$('.rq', w).forEach(x => show(x, lvl(d, k) === 2)); }));
+}
 /** Selects an activity: highlights it and shows the extra boxes it needs (phone/tag, old/new S/N). */
 function setAct(card, a) {
   $('.f-act', card.el).value = a;
   $$('.act-chips .chip', card.el).forEach(b => b.classList.toggle('active', b.dataset.a === a));
   const d = actDef(curType, a);
-  show($('.contact-wrap', card.el), builtInShown(d, 'phone') || builtInShown(d, 'tag'));
-  ['tag','oldSn','newSn','originSn','btype','hours','group'].forEach(k => show($('.bi-'+k, card.el), builtInShown(d,k)));
-  markRequired(card.el, d); renderCustom($('.custom-wrap', card.el), d);
-  applyActivityFields(card, d);
+  applyLevels(card.el, d);
+  show($('.qr-row', card.el), ['merchant', 'mid', 'tid'].some(k => lvl(d, k) > 0));
+  show($('.act-hint', card.el), !d);
+  renderCustom($('.custom-wrap', card.el), d);
   updateDateLabel(card);
 }
 function updateDateLabel(card) {
   $('.date-lbl', card.el).textContent = dateLabel($('.f-act', card.el).value);
 }
-/** Applies the current tab to one card: activity list + TID box (POS and SB only). */
+/** Applies the current tab to one card: its activity list (the boxes follow the chosen activity). */
 function applyType(card) {
   fillActivities(card);
-  show($('.tid-wrap', card.el), !!(typeDef(curType) && typeDef(curType).tid));
 }
 function setType(t) {
   if (!TYPES.includes(t)) t = TYPES[0];
@@ -659,7 +684,7 @@ function setType(t) {
 }
 
 // Paste your Apps Script Web app URL (ends with /exec) here:
-const API_URL = 'https://script.google.com/macros/s/AKfycbwCauiJ-VKIsfHGTV3G859ueRxnnHkZIGnYLs65EKCakqZbOIDeetVibyO8C5gsp4o9vw/exec';
+const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
 
 async function api(fn, ...args) {
   let json;
@@ -779,10 +804,10 @@ async function loadSummary() {
     $('#sumLabel').textContent = s.isAdmin ? 'Total activities today' : 'Your activities today';
     $('#sumNum').textContent = s.today;
     $('#sumTotal').textContent = s.total;
-    const counts = s.todayByType || {};
-    $('#sumBreakdown').textContent = Object.keys(counts).length
-      ? Object.keys(counts).map(k => k + ': ' + counts[k]).join(' · ')
-      : 'No activity breakdown yet';
+    const bt = s.byType || [];
+    $('#sumBreak').innerHTML = bt.map(t => '<div class="sum-cat"><span>' + esc(t.type) + '</span><span class="cnt">' + t.count + '</span></div><div class="sum-acts">' +
+      t.acts.map(a => '<span class="sum-act' + (a.count ? ' on' : '') + '">' + esc(a.n) + '<b>' + a.count + '</b></span>').join('') + '</div>').join('');
+    show($('#sumBreak'), bt.length > 0);
   } catch (e) { /* non-fatal */ }
 }
 
@@ -936,29 +961,30 @@ function addMerchant() {
   el.innerHTML =
     '<div class="merchant-head"><span class="badge-num">Merchant <span class="n"></span></span><span class="flex-grow-1 ms-2"><span class="pill ty"></span></span>' +
     '<button class="btn btn-sm btn-outline-danger border-0 btn-remove" type="button"><i class="bi bi-trash3"></i></button></div>' +
-    '<div class="mb-3 act-wrap"><label class="form-label">Activity <span class="text-danger fw-bold">*</span></label><div class="chips act-chips"></div></div><input type="hidden" class="f-act">' +
-    '<div class="mb-3"><label class="form-label date-lbl">Installed / action date <span class="text-danger fw-bold">*</span></label><input type="date" class="form-control f-date"></div>' +
-    '<div class="row g-2 mb-3">' +
+    '<div class="mb-3 act-wrap"><label class="form-label">Activity <span class="rq">*</span></label><div class="chips act-chips"></div></div><input type="hidden" class="f-act">' +
+    '<div class="small text-muted mb-3 act-hint hidden">Choose an activity to see the boxes it needs.</div>' +
+    '<div class="mb-3"><label class="form-label"><span class="date-lbl">Installed / action date</span> <span class="rq">*</span></label><input type="date" class="form-control f-date"></div>' +
+    '<div class="row g-2 mb-3 qr-row">' +
       '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-scan"><i class="bi bi-qr-code-scan me-1"></i>Scan QR</button></div>' +
       '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-upload"><i class="bi bi-image me-1"></i>Upload QR</button></div>' +
     '</div>' +
     '<input type="file" accept="image/*" class="qr-file hidden">' +
-    '<div class="mb-3 name-wrap"><label class="form-label field-label-merchant">Merchant name</label><input class="form-control f-name" placeholder="Auto-filled from KHQR"></div>' +
-    '<div class="mb-3 mid-wrap"><label class="form-label field-label-mid">MID</label><input class="form-control f-mid" inputmode="text" placeholder="Auto-filled from KHQR"></div>' +
-    '<div class="mb-3 tid-wrap hidden"><label class="form-label">TID <span class="text-danger fw-bold">*</span> <span class="text-lowercase fw-normal">(terminal ID, required)</span></label><input class="form-control f-tid" autocapitalize="characters" autocomplete="off" placeholder="Auto-filled from KHQR, or type it"></div>' +
-    '<div class="mb-3 business-wrap"><label class="form-label field-label-business">Business name</label><input class="form-control f-biz" value="N/A"></div>' +
-    '<div class="mb-3 bi-btype hidden"><label class="form-label">Business type<span class="rq text-danger hidden" data-k="btype"> *</span></label><input class="form-control f-btype mb-2" maxlength="60" autocomplete="off" placeholder="Type, or tap one below">' +
+    '<div class="mb-3 hidden" data-fk="merchant"><label class="form-label">Merchant name <span class="rq hidden">*</span></label><input class="form-control f-name" placeholder="Auto-filled from KHQR"></div>' +
+    '<div class="mb-3 hidden" data-fk="mid"><label class="form-label">MID <span class="rq hidden">*</span></label><input class="form-control f-mid" inputmode="text" placeholder="Auto-filled from KHQR"></div>' +
+    '<div class="mb-3 hidden" data-fk="tid"><label class="form-label">TID <span class="text-lowercase fw-normal">(terminal ID)</span> <span class="rq hidden">*</span></label><input class="form-control f-tid" autocapitalize="characters" autocomplete="off" placeholder="Auto-filled from KHQR, or type it"></div>' +
+    '<div class="mb-3 hidden" data-fk="business"><label class="form-label">Business name <span class="rq hidden">*</span></label><input class="form-control f-biz" placeholder="N/A"></div>' +
+    '<div class="mb-3 hidden" data-fk="serial"><label class="form-label">Serial number <span class="rq hidden">*</span></label><div class="input-group"><input class="form-control f-serial" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
+    '<div class="mb-3 hidden" data-fk="oldSn"><label class="form-label">Old S/N <span class="rq hidden">*</span></label><div class="input-group"><input class="form-control f-old" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
+    '<div class="mb-3 hidden" data-fk="newSn"><label class="form-label">New S/N <span class="rq hidden">*</span></label><div class="input-group"><input class="form-control f-new" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
+    '<div class="mb-3 hidden" data-fk="btype"><label class="form-label">Business type <span class="rq hidden">*</span></label><input class="form-control f-btype mb-2" maxlength="60" autocomplete="off" placeholder="Type, or tap one below">' +
       '<div class="chips btype-chips">' + BIZ_TYPES.map(t => '<button type="button" class="chip" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div></div>' +
-      '<div class="mb-3 bi-hours hidden"><label class="form-label">Business hours<span class="rq text-danger hidden" data-k="hours"> *</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" class="form-control f-open" aria-label="Opens"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" class="form-control f-close" aria-label="Closes"></div></div></div>' +
-      '<div class="mb-3 bi-group hidden"><label class="form-label">Merchant group<span class="rq text-danger hidden" data-k="group"> *</span></label><input class="form-control f-group" maxlength="100" autocomplete="off" placeholder="e.g. owner / chain / group name"></div>' +
-    '<div class="row g-2 mb-3"><div class="col-6 bi-oldSn hidden"><label class="form-label">Old S/N<span class="rq text-danger hidden" data-k="oldSn"> *</span></label><div class="input-group"><input class="form-control f-old" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
-      '<div class="col-6 bi-newSn hidden"><label class="form-label">New S/N<span class="rq text-danger hidden" data-k="newSn"> *</span></label><div class="input-group"><input class="form-control f-new" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div></div>' +
-    '<div class="mb-3 bi-originSn hidden"><label class="form-label">Origin S/N<span class="rq text-danger hidden" data-k="originSn"> *</span></label><div class="input-group"><input class="form-control f-origin" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
-    '<div class="contact-wrap hidden"><div class="mb-3"><label class="form-label">Phone number<span class="rq text-danger hidden" data-k="phone"> *</span></label><input class="form-control f-phone" type="tel" inputmode="tel" autocomplete="off" placeholder="e.g. 012 345 678"></div>' +
-      '<div class="mb-3 bi-tag hidden"><label class="form-label">Tag<span class="rq text-danger hidden" data-k="tag"> *</span></label><input class="form-control f-tag" maxlength="200" autocomplete="off" placeholder="Extra remark / tag"></div>' +
+    '<div class="mb-3 hidden" data-fk="hours"><label class="form-label">Business hours <span class="rq hidden">*</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" class="form-control f-open" aria-label="Opens"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" class="form-control f-close" aria-label="Closes"></div></div></div>' +
+    '<div class="mb-3 hidden" data-fk="group"><label class="form-label">Group name <span class="rq hidden">*</span></label><input class="form-control f-group" maxlength="100" autocomplete="off" placeholder="e.g. owner / chain / group name"></div>' +
+    '<div class="mb-3 hidden" data-fk="phone"><label class="form-label">Phone number <span class="rq hidden">*</span></label><input class="form-control f-phone" type="tel" inputmode="tel" autocomplete="off" placeholder="e.g. 012 345 678"></div>' +
+    '<div class="mb-3 hidden" data-fk="tag"><label class="form-label">Tag <span class="rq hidden">*</span></label><input class="form-control f-tag" maxlength="200" autocomplete="off" placeholder="Extra remark / tag"></div>' +
     '<div class="custom-wrap hidden"></div>' +
-    '<div class="mb-3 remarks-wrap"><label class="form-label field-label-remarks">Remark</label><textarea class="form-control f-rem" rows="2"></textarea></div>' +
-    '<div class="photos-wrap"><label class="form-label field-label-photos">Photo</label><span class="text-lowercase fw-normal small text-muted"> (max ' + MAX_PHOTOS + ')</span>' +
+    '<div class="mb-3 hidden" data-fk="remarks"><label class="form-label">Remarks <span class="rq hidden">*</span></label><textarea class="form-control f-rem" rows="2"></textarea></div>' +
+    '<div class="hidden" data-fk="photo"><label class="form-label">Photos <span class="rq hidden">*</span> <span class="text-lowercase fw-normal">(max ' + MAX_PHOTOS + ')</span></label>' +
     '<div class="row g-2">' +
       '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-cam"><i class="bi bi-camera me-1"></i>Take photo</button></div>' +
       '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-photo"><i class="bi bi-images me-1"></i>Choose photos</button></div>' +
@@ -1268,34 +1294,16 @@ $('#submitBtn').addEventListener('click', async () => {
   const items = [];
   for (let i = 0; i < S.cards.length; i++) {
     const c = S.cards[i], g = s => $(s, c.el).value.trim();
-    if (!g('.f-act')) { toast('Merchant ' + (i + 1) + ': select an activity.', 'danger'); c.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-    const needTid = !!(typeDef(curType) && typeDef(curType).tid), ad = actDef(curType, g('.f-act')), bad = (m, sel) => { toast('Merchant ' + (i + 1) + ': ' + m, 'danger'); if (sel) $(sel, c.el).focus(); c.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
-    if (needTid && !g('.f-tid')) { bad('enter the TID.', '.f-tid'); return; }
-    if (!g('.f-date')) { bad('pick the date.'); return; }
-    const rq = k => isReq(ad, k);
-    for (const k of ['merchant', 'mid', 'remarks', 'photos', 'business']) {
-      const cfg = fieldCfg(ad, k), sel = ({ merchant: '.f-name', mid: '.f-mid', remarks: '.f-rem', photos: '.photo-grid', business: '.f-biz' })[k];
-      if (cfg.show && cfg.req) {
-        const value = k === 'photos' ? c.photos.length > 0 : !!g(sel);
-        if (!value) { bad('enter ' + FIELD_LABELS[k].toLowerCase() + (k === 'photos' ? ' (attach at least one).' : '.'), k === 'photos' ? null : sel); return; }
-      }
-    }
-    const merchantCfg = fieldCfg(ad, 'merchant'), midCfg = fieldCfg(ad, 'mid');
-    if ((!merchantCfg.show || !g('.f-name')) && (!midCfg.show || !g('.f-mid')) && !merchantCfg.req && !midCfg.req) { bad('enter a merchant name or MID.'); return; }
-    if (builtInShown(ad,'phone')) {
-      if (rq('phone') && !g('.f-phone')) { bad('enter the phone number.', '.f-phone'); return; }
-      if (g('.f-phone') && !PHONE_RE.test(g('.f-phone'))) { bad('the phone number looks wrong.', '.f-phone'); return; }
-      if (builtInShown(ad,'tag') && rq('tag') && !g('.f-tag')) { bad('enter the Tag.', '.f-tag'); return; }
-    }
-    if (builtInShown(ad,'oldSn') || builtInShown(ad,'newSn') || builtInShown(ad,'originSn')) {
-      if (builtInShown(ad,'oldSn') && rq('oldSn') && !g('.f-old')) { bad('enter the Old S/N.', '.f-old'); return; }
-      if (builtInShown(ad,'newSn') && rq('newSn') && !g('.f-new')) { bad('enter the New S/N.', '.f-new'); return; }
-    }
-    if (builtInShown(ad,'btype') || builtInShown(ad,'hours') || builtInShown(ad,'group')) {
-      if (builtInShown(ad,'btype') && rq('btype') && !g('.f-btype')) { bad('enter the business type.', '.f-btype'); return; }
-      if ((builtInShown(ad,'hours') && rq('hours') && !g('.f-open')) || (builtInShown(ad,'hours') && (!!g('.f-open') !== !!g('.f-close')))) { bad('enter both opening and closing time.', g('.f-open') ? '.f-close' : '.f-open'); return; }
-      if (builtInShown(ad,'group') && rq('group') && !g('.f-group')) { bad('enter the group name.', '.f-group'); return; }
-    }
+    const bad = (m, sel) => { toast('Merchant ' + (i + 1) + ': ' + m, 'danger'); if (sel) $(sel, c.el).focus(); c.el.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    if (!g('.f-act')) { bad('select an activity.'); return; }
+    const ad = actDef(curType, g('.f-act')), L = k => lvl(ad, k);
+    if (!g('.f-date')) { bad('pick the date.', '.f-date'); return; }
+    const must = [['merchant', '.f-name', 'the merchant name'], ['mid', '.f-mid', 'the MID'], ['tid', '.f-tid', 'the TID'], ['business', '.f-biz', 'the business name'],
+      ['serial', '.f-serial', 'the serial number'], ['oldSn', '.f-old', 'the Old S/N'], ['newSn', '.f-new', 'the New S/N'], ['btype', '.f-btype', 'the business type'],
+      ['group', '.f-group', 'the group name'], ['phone', '.f-phone', 'the phone number'], ['tag', '.f-tag', 'the Tag'], ['remarks', '.f-rem', 'a remark']];
+    for (const [k, sel, txt] of must) if (L(k) === 2 && !g(sel)) { bad('enter ' + txt + '.', sel); return; }
+    if (L('hours') && ((L('hours') === 2 && !g('.f-open')) || (!!g('.f-open') !== !!g('.f-close')))) { bad('enter both opening and closing time.', g('.f-open') ? '.f-close' : '.f-open'); return; }
+    if (L('phone') && g('.f-phone') && !PHONE_RE.test(g('.f-phone'))) { bad('the phone number looks wrong.', '.f-phone'); return; }
     const extra = {};
     for (const f of ((ad && ad.custom) || [])) {
       const inp = $('[data-fid="' + f.id + '"]', c.el), v = inp ? inp.value.trim() : '';
@@ -1304,10 +1312,12 @@ $('#submitBtn').addEventListener('click', async () => {
       if (f.kind === 'phone' && !PHONE_RE.test(v)) { bad(f.label + ' looks wrong.'); return; }
       extra[f.id] = v;
     }
-    if (fieldCfg(ad, 'photos').show && fieldCfg(ad, 'photos').req && !c.photos.length) { bad('attach at least one photo.'); return; }
-    items.push({ type: curType, activity: g('.f-act'), tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: fieldCfg(ad, 'business').show ? (g('.f-biz') || 'N/A') : 'N/A', merchant: fieldCfg(ad, 'merchant').show ? g('.f-name') : '', mid: fieldCfg(ad, 'mid').show ? g('.f-mid') : '', remarks: fieldCfg(ad, 'remarks').show ? g('.f-rem') : '', extra,
-      phone: builtInShown(ad,'phone') ? g('.f-phone') : '', tag: builtInShown(ad,'tag') ? g('.f-tag') : '', oldSn: builtInShown(ad,'oldSn') ? g('.f-old') : '', newSn: builtInShown(ad,'newSn') ? g('.f-new') : '', originSn: builtInShown(ad,'originSn') ? g('.f-origin') : '',
-      btype: builtInShown(ad,'btype') ? g('.f-btype') : '', hours: builtInShown(ad,'hours') && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', group: builtInShown(ad,'group') ? g('.f-group') : '', photos: c.photos });
+    if (L('photo') === 2 && !c.photos.length) { bad('attach at least one photo.'); return; }
+    const v = (k, sel) => L(k) ? g(sel) : '';
+    items.push({ type: curType, activity: g('.f-act'), date: g('.f-date'), extra,
+      merchant: v('merchant', '.f-name'), mid: v('mid', '.f-mid'), tid: v('tid', '.f-tid'), business: v('business', '.f-biz'), remarks: v('remarks', '.f-rem'),
+      serial: v('serial', '.f-serial'), oldSn: v('oldSn', '.f-old'), newSn: v('newSn', '.f-new'), phone: v('phone', '.f-phone'), tag: v('tag', '.f-tag'),
+      btype: v('btype', '.f-btype'), group: v('group', '.f-group'), hours: L('hours') && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', photos: L('photo') ? c.photos : [] });
   }
   const btn = $('#submitBtn');
   busy(btn, true, 'Submitting…');
@@ -1359,7 +1369,7 @@ function fillActivityFilter() {
 }
 async function loadRecords() {
   const r = range();
-  $('#recBody').innerHTML = '<tr><td colspan="20" class="empty"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+  $('#recBody').innerHTML = '<tr><td colspan="21" class="empty"><span class="spinner-border spinner-border-sm"></span></td></tr>';
   try {
     const data = await api('getRecords', S.token, { user: $('#fUser').value, type: $('#fType').value, activity: $('#fActivity').value, from: r.from, to: r.to });
     S.rows = data.rows;
@@ -1372,7 +1382,7 @@ async function loadRecords() {
 function filtered() {
   const q = $('#fSearch').value.trim().toLowerCase();
   if (!q) return S.rows;
-  return S.rows.filter(r => [r.stamp, r.type, r.activity, r.tid, r.user, r.business, r.merchant, r.mid, r.remarks, r.phone, r.tag, r.oldSn, r.newSn, r.btype, r.group, r.extra].join(' ').toLowerCase().includes(q));
+  return S.rows.filter(r => [r.stamp, r.type, r.activity, r.tid, r.user, r.business, r.merchant, r.mid, r.remarks, r.phone, r.tag, r.serial, r.oldSn, r.newSn, r.btype, r.group, r.extra].join(' ').toLowerCase().includes(q));
 }
 function locLink(t) {
   const m = /(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(String(t || ''));
@@ -1384,8 +1394,8 @@ function renderRows() {
   $('#recBody').innerHTML = rows.length ? rows.map(r =>
     '<tr><td><span class="pill">' + esc(r.type) + '</span></td><td>' + esc(r.activity) + '</td><td class="text-nowrap small">' + esc(r.stamp) +
     '</td><td class="text-nowrap">' + esc(r.date || r.ts.slice(0, 10)) + '</td><td><span class="pill">' + esc(r.user) + '</span></td><td class="fw-semibold">' + esc(r.merchant) +
-    '</td><td class="text-nowrap">' + esc(r.mid) + '</td><td class="text-nowrap">' + esc(r.tid) + '</td><td>' + esc(r.business) + '</td><td>' + esc(r.btype) + '</td><td class="text-nowrap">' + esc(r.hours) + '</td><td>' + esc(r.group) + '</td><td>' + esc(r.extra) + '</td><td class="text-nowrap">' + esc(r.phone) + '</td><td>' + esc(r.tag) + '</td><td class="text-nowrap">' + esc(r.oldSn) + '</td><td class="text-nowrap">' + esc(r.newSn) + '</td><td>' + esc(r.remarks) + '</td><td>' + locLink(r.loc) + '</td><td>' + (r.photos || '') + '</td></tr>'
-  ).join('') : '<tr><td colspan="20"><div class="empty"><i class="bi bi-inbox"></i>No records for this filter</div></td></tr>';
+    '</td><td class="text-nowrap">' + esc(r.mid) + '</td><td class="text-nowrap">' + esc(r.tid) + '</td><td>' + esc(r.business) + '</td><td>' + esc(r.btype) + '</td><td class="text-nowrap">' + esc(r.hours) + '</td><td>' + esc(r.group) + '</td><td>' + esc(r.extra) + '</td><td class="text-nowrap">' + esc(r.phone) + '</td><td>' + esc(r.tag) + '</td><td class="text-nowrap">' + esc(r.serial) + '</td><td class="text-nowrap">' + esc(r.oldSn) + '</td><td class="text-nowrap">' + esc(r.newSn) + '</td><td>' + esc(r.remarks) + '</td><td>' + locLink(r.loc) + '</td><td>' + (r.photos || '') + '</td></tr>'
+  ).join('') : '<tr><td colspan="21"><div class="empty"><i class="bi bi-inbox"></i>No records for this filter</div></td></tr>';
 }
 /* ---- Admin chart: one cluster per staff member, one column per category ---- */
 // Colour by position in the category list (first four are the validated slots; the rest are extras).
@@ -1486,8 +1496,8 @@ $('#csvBtn').addEventListener('click', () => {
   const rows = filtered();
   if (!rows.length) { toast('Nothing to export.', 'warning'); return; }
   const cell = v => { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
-  const lines = [['Timestamp', 'Staff', 'Merchant Name', 'MID', 'TID', 'Business Name', 'Remarks', 'Installed/Action Date', 'Photos', 'Category', 'Activity', 'Stamp', 'Phone', 'Tag', 'Old S/N', 'New S/N', 'Location', 'Business Hours', 'Group Name', 'Business Type', 'Extra Fields']].concat(
-    rows.map(r => [r.ts, r.user, r.merchant, r.mid, r.tid, r.business, r.remarks, r.date || r.ts.slice(0, 10), r.photos, r.type, r.activity, r.stamp, r.phone, r.tag, r.oldSn, r.newSn, r.loc, r.hours, r.group, r.btype, r.extra]));
+  const lines = [['Timestamp', 'Staff', 'Merchant Name', 'MID', 'TID', 'Business Name', 'Remarks', 'Installed/Action Date', 'Photos', 'Category', 'Activity', 'Stamp', 'Phone', 'Tag', 'Old S/N', 'New S/N', 'Location', 'Business Hours', 'Group Name', 'Business Type', 'Extra Fields', 'Serial No']].concat(
+    rows.map(r => [r.ts, r.user, r.merchant, r.mid, r.tid, r.business, r.remarks, r.date || r.ts.slice(0, 10), r.photos, r.type, r.activity, r.stamp, r.phone, r.tag, r.oldSn, r.newSn, r.loc, r.hours, r.group, r.btype, r.extra, r.serial]));
   const csv = '\uFEFF' + lines.map(l => l.map(cell).join(',')).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -1623,29 +1633,14 @@ $('#tplSend').addEventListener('click', async () => {
 const catModal = new bootstrap.Modal($('#catModal'));
 let catDraft = [], catSeq = 0;
 const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date']];
-const REQ_LABELS = { phone: 'Phone', tag: 'Tag', oldSn: 'Old S/N', newSn: 'New S/N', originSn: 'Origin S/N', btype: 'Business Type', hours: 'Business Hours', group: 'Merchant Group' };
-function fieldSettingsHtml(a, categoryName) {
-  const keys = ['merchant', 'mid', 'remarks', 'photos', 'business'];
-  return '<div class="small text-muted mt-2">Fields for this activity (tap Show / Must)</div><div class="d-flex flex-wrap gap-1 mt-1">' +
-    keys.map(k => {
-      const cfg = a.fields && a.fields[k] ? a.fields[k] : { show: k !== 'business' || categoryName !== 'POS', req: k === 'photos' };
-      return '<span class="d-inline-flex align-items-center gap-1 border rounded-pill px-2 py-1 small">' + esc(FIELD_LABELS[k]) +
-        '<button type="button" class="chip a-field-show' + (cfg.show ? ' active' : '') + '" data-k="' + k + '" data-mode="show">Show</button>' +
-        '<button type="button" class="chip a-field-req' + (cfg.req ? ' active' : '') + '" data-k="' + k + '" data-mode="req"' + (!cfg.show ? ' disabled' : '') + '>Must *</button></span>';
-    }).join('') + '</div>';
-}
-/** "Must fill" switches for the built-in boxes this activity shows. */
-function builtInShown(a,k) {
-  const legacy = ({phone:'contact',tag:'contact',oldSn:'replace',newSn:'replace',originSn:'replace',btype:'bizinfo',hours:'bizinfo',group:'bizinfo'})[k];
-  return !!(a && (typeof a[k] === 'boolean' ? a[k] : a[legacy]));
-}
-function reqChips(a) {
-  const ks = ['phone','tag','oldSn','newSn','originSn','btype','hours','group'].filter(k => builtInShown(a,k));
-  if (!ks.length) return '';
-  return '<div class="small text-muted mt-2">Must fill</div><div class="chips">' + ks.map(k => '<button type="button" class="chip a-req' + (isReq(a, k) ? ' active' : '') + '" data-k="' + k + '">' + REQ_LABELS[k] + '</button>').join('') + '</div>';
+/** One row per box: Off / Optional / Must (red). */
+function fieldRows(a) {
+  return '<details class="mt-2 a-fields"><summary class="small fw-semibold" style="cursor:pointer">Boxes to fill <span class="text-muted fw-normal">(' + FIELD_KEYS.filter(k => lvl(a, k) > 0).map(k => FIELD_NAMES[k] + (lvl(a, k) === 2 ? '*' : '')).join(', ') + ')</span></summary>' +
+    FIELD_KEYS.map(k => '<div class="fl-row" data-k="' + k + '"><span>' + FIELD_NAMES[k] + '</span><span class="fl-seg">' +
+      [[0, 'Off'], [1, 'Optional'], [2, 'Must']].map(p => '<button type="button" class="a-lv' + (lvl(a, k) === p[0] ? ' active' : '') + '" data-v="' + p[0] + '">' + p[1] + '</button>').join('') + '</span></div>').join('') + '</details>';
 }
 function renderCatSummary() {
-  $('#catSummary').innerHTML = CATALOG.map(t => '<div class="mb-1"><b>' + esc(t.name) + '</b> <span class="text-muted">(' + esc(t.code) + (t.tid ? ', TID' : '') + ')</span>: ' + t.acts.map(a => esc(a.n) + (a.custom && a.custom.length ? ' <span class="text-muted">(+' + a.custom.length + ')</span>' : '')).join(', ') + '</div>').join('');
+  $('#catSummary').innerHTML = CATALOG.map(t => '<div class="mb-1"><b>' + esc(t.name) + '</b> <span class="text-muted">(' + esc(t.code) + ')</span>: ' + t.acts.map(a => esc(a.n) + (a.custom && a.custom.length ? ' <span class="text-muted">(+' + a.custom.length + ')</span>' : '')).join(', ') + '</div>').join('');
 }
 function renderCatEditor() {
   $('#catList').innerHTML = catDraft.map((t, ti) =>
@@ -1653,13 +1648,11 @@ function renderCatEditor() {
       '<div class="d-flex gap-2 mb-2"><input class="form-control form-control-sm c-name" maxlength="30" placeholder="Category name" value="' + esc(t.name) + '">' +
       '<input class="form-control form-control-sm c-code" maxlength="8" placeholder="Code" style="max-width:90px" value="' + esc(t.code) + '">' +
       '<button type="button" class="btn btn-sm btn-outline-danger border-0 c-del" aria-label="Remove category"><i class="bi bi-trash3"></i></button></div>' +
-      '<div class="form-check small mb-2"><input class="form-check-input c-tid" type="checkbox" id="ctid' + ti + '"' + (t.tid ? ' checked' : '') + '><label class="form-check-label" for="ctid' + ti + '">Ask for TID</label></div>' +
       t.acts.map((a, ai) =>
         '<div class="mb-3 pb-2 border-bottom" data-ai="' + ai + '"><div class="d-flex gap-2 mb-1"><input class="form-control form-control-sm a-name" maxlength="40" placeholder="Activity" value="' + esc(a.n) + '">' +
         '<button type="button" class="btn btn-sm btn-outline-danger border-0 a-del" aria-label="Remove activity"><i class="bi bi-x-lg"></i></button></div>' +
-        '<div class="chips"><button type="button" class="chip a-flag' + (a.inst ? ' active' : '') + '" data-f="inst">Installed wording</button>' +
-        ['phone','tag','oldSn','newSn','originSn','btype','hours','group'].map(k => '<button type="button" class="chip a-flag' + (builtInShown(a,k) ? ' active' : '') + '" data-f="' + k + '">' + REQ_LABELS[k] + '</button>').join('') + '</div>' +
-        reqChips(a) +
+        '<div class="chips"><button type="button" class="chip a-flag' + (a.inst ? ' active' : '') + '" data-f="inst">Installed wording</button></div>' +
+        fieldRows(a) +
         '<div class="small text-muted mt-2">Extra boxes</div>' +
         (a.custom || []).map((f, ci) =>
           '<div class="d-flex gap-1 mb-1 align-items-center" data-ci="' + ci + '"><input class="form-control form-control-sm cf-label" maxlength="30" placeholder="Box name" value="' + esc(f.label) + '">' +
@@ -1672,7 +1665,7 @@ function renderCatEditor() {
 $('#catEditBtn').addEventListener('click', () => {
   catDraft = JSON.parse(JSON.stringify(CATALOG)); show($('#catError'), false); renderCatEditor(); catModal.show();
 });
-$('#catAdd').addEventListener('click', () => { catDraft.push({ name: '', code: '', tid: false, acts: [{ n: '' }] }); renderCatEditor(); });
+$('#catAdd').addEventListener('click', () => { catDraft.push({ name: '', code: '', acts: [normAct({}, { n: '' })] }); renderCatEditor(); });
 $('#catList').addEventListener('input', e => {
   const box = e.target.closest('[data-ti]'); if (!box) return; const t = catDraft[+box.dataset.ti];
   if (e.target.classList.contains('c-name')) t.name = e.target.value;
@@ -1681,25 +1674,19 @@ $('#catList').addEventListener('input', e => {
   else if (e.target.classList.contains('cf-label')) t.acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].label = e.target.value;
 });
 $('#catList').addEventListener('change', e => {
-  if (e.target.classList.contains('c-tid')) catDraft[+e.target.closest('[data-ti]').dataset.ti].tid = e.target.checked;
-  else if (e.target.classList.contains('cf-kind')) catDraft[+e.target.closest('[data-ti]').dataset.ti].acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].kind = e.target.value;
+  if (e.target.classList.contains('cf-kind')) catDraft[+e.target.closest('[data-ti]').dataset.ti].acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].kind = e.target.value;
 });
 $('#catList').addEventListener('click', e => {
   const box = e.target.closest('[data-ti]'); if (!box) return; const ti = +box.dataset.ti, t = catDraft[ti];
   const ab = e.target.closest('[data-ai]'), ai = ab ? +ab.dataset.ai : -1;
   if (e.target.closest('.c-del')) { catDraft.splice(ti, 1); renderCatEditor(); }
-  else if (e.target.closest('.c-addact')) { t.acts.push({ n: '' }); renderCatEditor(); }
+  else if (e.target.closest('.c-addact')) { t.acts.push(normAct({}, { n: '' })); renderCatEditor(); }
   else if (e.target.closest('.a-del')) { t.acts.splice(ai, 1); renderCatEditor(); }
-  else if (e.target.closest('.a-flag')) { const f = e.target.closest('.a-flag').dataset.f, a=t.acts[ai]; a[f] = !builtInShown(a,f); renderCatEditor(); }
-  else if (e.target.closest('.a-req')) { const k = e.target.closest('.a-req').dataset.k, a = t.acts[ai]; a.req = a.req || {}; a.req[k] = !isReq(a, k); e.target.closest('.a-req').classList.toggle('active', a.req[k]); }
-  else if (e.target.closest('.a-field-show') || e.target.closest('.a-field-req')) {
-    const btn = e.target.closest('.a-field-show, .a-field-req'), k = btn.dataset.k, mode = btn.dataset.mode, a = t.acts[ai];
-    a.fields = a.fields || {};
-    const old = a.fields[k] || { show: k !== 'business' || t.name !== 'POS', req: k === 'photos' };
-    a.fields[k] = { show: !!old.show, req: !!old.req };
-    if (mode === 'show') { a.fields[k].show = !a.fields[k].show; if (!a.fields[k].show) a.fields[k].req = false; }
-    else a.fields[k].req = !a.fields[k].req;
-    renderCatEditor();
+  else if (e.target.closest('.a-flag')) { const f = e.target.closest('.a-flag').dataset.f; t.acts[ai][f] = !t.acts[ai][f]; renderCatEditor(); }
+  else if (e.target.closest('.a-lv')) {
+    const row = e.target.closest('.fl-row'), a = t.acts[ai]; a.f[row.dataset.k] = +e.target.closest('.a-lv').dataset.v;
+    $$('.a-lv', row).forEach(b => b.classList.toggle('active', +b.dataset.v === a.f[row.dataset.k]));
+    $('summary span', e.target.closest('.a-fields')).textContent = '(' + FIELD_KEYS.filter(k => lvl(a, k) > 0).map(k => FIELD_NAMES[k] + (lvl(a, k) === 2 ? '*' : '')).join(', ') + ')';
   }
   else if (e.target.closest('.cf-add')) { const a = t.acts[ai]; a.custom = a.custom || []; if (a.custom.length >= 20) { toast('At most 20 extra boxes per activity.', 'warning'); return; } a.custom.push({ id: 'f' + (++catSeq).toString(36) + Math.random().toString(36).slice(2, 6), label: '', kind: 'text', req: false }); renderCatEditor(); }
   else if (e.target.closest('.cf-del')) { t.acts[ai].custom.splice(+e.target.closest('[data-ci]').dataset.ci, 1); renderCatEditor(); }
@@ -1811,15 +1798,7 @@ const editModal = new bootstrap.Modal($('#editModal'));
 function updateEditDateLabel() {
   const t = S.last ? S.last.type : curType, a = $('#eAct').value, d = actDef(t, a);
   $('#eDateLbl').textContent = dateLabel(a, t).replace('Installed / action date', 'Date');
-  ['phone','tag','oldSn','newSn','originSn','btype','hours','group'].forEach(k => show($('.e-bi-'+k), builtInShown(d,k)));
-  markRequired($('#editModal'), d); renderCustom($('#eCustom'), d);
-  const cfgs = { merchant: '.e-name-wrap', mid: '.e-mid-wrap', remarks: '.e-remarks-wrap', business: '.e-business-wrap' };
-  Object.keys(cfgs).forEach(k => {
-    const cfg = fieldCfg(d, k, S.last ? S.last.type : curType), wrap = $(cfgs[k]);
-    show(wrap, cfg.show);
-    const label = $('.e-field-label-' + k, wrap);
-    if (label) label.innerHTML = esc(FIELD_LABELS[k]) + requiredStar(cfg.req);
-  });
+  applyLevels($('#editModal'), d); renderCustom($('#eCustom'), d);
 }
 function openEdit() {
   const r = S.last; if (!r) return;
@@ -1833,12 +1812,11 @@ function openEdit() {
   $('#eDate').value = r.date || r.ts.slice(0, 10); $('#eDate').max = ymd(new Date());
   $('#eName').value = r.merchant; $('#eMid').value = r.mid; $('#eTid').value = r.tid;
   $('#eBiz').value = r.business; $('#eRem').value = r.remarks;
-  show($('#eTidWrap'), !!(typeDef(r.type) && typeDef(r.type).tid));
   $('#bizTypeList').innerHTML = BIZ_TYPES.map(t => '<option value="' + esc(t) + '">').join('');
   const hm = /(\d{2}:\d{2}) ?- ?(\d{2}:\d{2})/.exec(r.hours || ''); $('#eOpen').value = hm ? hm[1] : ''; $('#eClose').value = hm ? hm[2] : '';
   $('#eBType').value = r.btype || ''; $('#eGroup').value = r.group || '';
   { const d0 = actDef(r.type, r.activity); renderCustom($('#eCustom'), d0); const mp = {}; String(r.extra || '').split(' | ').forEach(x => { const i = x.indexOf(': '); if (i > 0) mp[x.slice(0, i)] = x.slice(i + 2); }); ((d0 && d0.custom) || []).forEach(f => { const el = $('[data-fid="' + f.id + '"]', $('#eCustom')); if (el && mp[f.label] != null) el.value = mp[f.label]; }); }
-  $('#ePhone').value = r.phone || ''; $('#eTag').value = r.tag || ''; $('#eOldSn').value = r.oldSn || ''; $('#eNewSn').value = r.newSn || ''; $('#eOriginSn').value = r.originSn || '';
+  $('#ePhone').value = r.phone || ''; $('#eTag').value = r.tag || ''; $('#eSerial').value = r.serial || ''; $('#eOldSn').value = r.oldSn || ''; $('#eNewSn').value = r.newSn || '';
   updateEditDateLabel();
   editModal.show();
 }
@@ -1853,7 +1831,7 @@ $('#editForm').addEventListener('submit', async e => {
       stamp: $('#eStamp').value, activity: $('#eAct').value, date: $('#eDate').value, merchant: $('#eName').value.trim(),
       mid: $('#eMid').value.trim(), tid: $('#eTid').value.trim(), business: $('#eBiz').value.trim(), remarks: $('#eRem').value.trim(),
       extra: Object.fromEntries($$('#eCustom [data-fid]').map(i => [i.dataset.fid, i.value.trim()])), btype: $('#eBType').value.trim(), group: $('#eGroup').value.trim(), hours: $('#eOpen').value && $('#eClose').value ? $('#eOpen').value + ' - ' + $('#eClose').value : '',
-      phone: $('#ePhone').value.trim(), tag: $('#eTag').value.trim(), oldSn: $('#eOldSn').value.trim(), newSn: $('#eNewSn').value.trim(), originSn: $('#eOriginSn').value.trim()
+      serial: $('#eSerial').value.trim(), phone: $('#ePhone').value.trim(), tag: $('#eTag').value.trim(), oldSn: $('#eOldSn').value.trim(), newSn: $('#eNewSn').value.trim()
     });
     S.last = r.record; renderLast(); editModal.hide();
     toast('Saved. Telegram: ' + r.telegram, r.telegram === 'updated' ? 'success' : 'warning');
