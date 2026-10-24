@@ -268,7 +268,7 @@
         </div>
         <div class="table-responsive">
           <table class="table table-hover mb-0">
-            <thead><tr><th>Category</th><th>Activity</th><th>Stamp</th><th>Date</th><th>Staff</th><th>Merchant</th><th>MID</th><th>TID</th><th>Business</th><th>Type</th><th>Hours</th><th>Group</th><th>Extra</th><th>Phone</th><th>Tag</th><th>Old S/N</th><th>New S/N</th><th>Remarks</th><th>Location</th><th>📷</th></tr></thead>
+            <thead><tr><th>Category</th><th>Activity</th><th>Stamp</th><th>Date</th><th>Staff</th><th>Merchant</th><th>MID</th><th>TID</th><th>Business</th><th>Type</th><th>Hours</th><th>Group</th><th>Extra</th><th>Phone</th><th>Tag</th><th>Old S/N</th><th>New S/N</th><th>Serial Number</th><th>Product Type</th><th>Remarks</th><th>Location</th><th>📷</th></tr></thead>
             <tbody id="recBody"></tbody>
           </table>
         </div>
@@ -478,7 +478,7 @@
         <label class="form-label mb-0">Map size <span id="stMapVal"></span></label>
         <input type="range" class="form-range st-size" id="stMapSz" min="10" max="40" step="1" data-k="mapScale">
         <label class="form-label mb-0">Logo size <span id="stLogoVal"></span></label>
-        <input type="range" class="form-range st-size mb-3" id="stLogoSz" min="50" max="200" step="5" data-k="logoScale">
+        <input type="range" class="form-range st-size mb-3" id="stLogoSz" min="50" max="300" step="5" data-k="logoScale">
         <label class="form-label">Title text <span class="text-muted">(shown as #title)</span></label>
         <input id="stTitle" class="form-control" maxlength="40" placeholder="e.g. Merchant Support SR">
         <label class="form-label mt-3">Logo (top-right)</label>
@@ -593,7 +593,15 @@ const PHONE_RE = /^[0-9+\-\s()]{6,20}$/;
 /** HTML of one admin-added box. Serial boxes get a barcode-scan button. */
 function customFieldHtml(f) {
   const t = f.kind === 'date' ? 'date' : (f.kind === 'phone' ? 'tel' : 'text'), im = f.kind === 'number' ? 'decimal' : (f.kind === 'phone' ? 'tel' : 'text');
-  const inp = '<input class="form-control" data-fid="' + esc(f.id) + '" data-kind="' + f.kind + '" type="' + t + '" inputmode="' + im + '" autocomplete="off"' + (f.kind === 'serial' ? ' autocapitalize="characters"' : '') + '>';
+  let inp;
+  if (f.kind === 'select') {
+    const opts = Array.isArray(f.options) ? f.options : [];
+    inp = '<select class="form-select" data-fid="' + esc(f.id) + '" data-kind="select"><option value="">Select…</option>' + opts.map(v => '<option>' + esc(v) + '</option>').join('') + '</select>';
+  } else if (f.kind === 'checkbox') {
+    inp = '<div class="form-check"><input class="form-check-input" data-fid="' + esc(f.id) + '" data-kind="checkbox" type="checkbox"><label class="form-check-label">' + esc(f.checkboxLabel || 'Yes') + '</label></div>';
+  } else {
+    inp = '<input class="form-control" data-fid="' + esc(f.id) + '" data-kind="' + f.kind + '" type="' + t + '" inputmode="' + im + '" autocomplete="off"' + (f.kind === 'serial' ? ' autocapitalize="characters"' : '') + '>';
+  }
   return '<div class="mb-3"><label class="form-label">' + esc(f.label) + (f.req ? ' <span class="text-danger">*</span>' : '') + '</label>' +
     (f.kind === 'serial' ? '<div class="input-group">' + inp + '<button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div>' : inp) + '</div>';
 }
@@ -624,6 +632,13 @@ function updateDateLabel(card) {
 function applyType(card) {
   fillActivities(card);
   show($('.tid-wrap', card.el), !!(typeDef(curType) && typeDef(curType).tid));
+  show($('.merchant-name-wrap', card.el), true);
+  const biz = $('.f-biz', card.el);
+  if (biz) {
+    const wrap = biz.closest('.mb-3');
+    show(wrap, curType !== 'POS');
+    if (curType === 'POS') biz.value = 'N/A';
+  }
 }
 function setType(t) {
   if (!TYPES.includes(t)) t = TYPES[0];
@@ -631,13 +646,20 @@ function setType(t) {
   try { localStorage.setItem('it_type', t); } catch (e) {}
   $$('#typeTabs button').forEach(b => b.classList.toggle('active', b.dataset.type === t));
   $$('.ty').forEach(el => { el.textContent = t; });
-  S.cards.forEach(applyType);
+  S.cards.forEach(card => {
+    applyType(card);
+    const pt = $('.f-product-type', card.el);
+    if (pt && (!pt.value || ['QR','POS','SB','PW'].includes(pt.value))) {
+      const defaults = { 'QR':'QR', 'POS':'POS', 'SB':'SB', 'Payway Inspection':'PW' };
+      pt.value = defaults[t] || 'Other';
+    }
+  });
   const sb = $('#submitBtn');
   if (sb && !sb.disabled) sb.innerHTML = '<i class="bi bi-send me-1"></i>Submit ' + t + ' records';
 }
 
 // Paste your Apps Script Web app URL (ends with /exec) here:
-const API_URL = 'https://script.google.com/macros/s/AKfycbzCqD1DodFbLtHvqY7Z8HKKMaOIXTFi1R2eBPdnwxRv1nh7BAJsZNnUm6_e6fUGmrCReQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwzwih-6aEYW0Q21f8GPvkSgpNrpK0Nr4nsRr07zOIANdMvPxROV3IcfCESNMEd7uVjRQ/exec';
 
 async function api(fn, ...args) {
   let json;
@@ -757,6 +779,16 @@ async function loadSummary() {
     $('#sumLabel').textContent = s.isAdmin ? 'Total activities today' : 'Your activities today';
     $('#sumNum').textContent = s.today;
     $('#sumTotal').textContent = s.total;
+    let breakdown = $('#todayBreakdown');
+    if (!breakdown) {
+      breakdown = document.createElement('div');
+      breakdown.id = 'todayBreakdown';
+      breakdown.className = 'small text-muted mt-2';
+      $('#sumLabel').parentElement.appendChild(breakdown);
+    }
+    breakdown.textContent = 'Today by type: ' + (Object.keys(s.todayByType || {}).length
+      ? Object.keys(s.todayByType).sort().map(k => k + ' ' + s.todayByType[k]).join(' · ')
+      : 'No activities yet');
   } catch (e) { /* non-fatal */ }
 }
 
@@ -911,13 +943,15 @@ function addMerchant() {
     '<div class="merchant-head"><span class="badge-num">Merchant <span class="n"></span></span><span class="flex-grow-1 ms-2"><span class="pill ty"></span></span>' +
     '<button class="btn btn-sm btn-outline-danger border-0 btn-remove" type="button"><i class="bi bi-trash3"></i></button></div>' +
     '<div class="mb-3 act-wrap"><label class="form-label">Activity</label><div class="chips act-chips"></div></div><input type="hidden" class="f-act">' +
-    '<div class="mb-3"><label class="form-label date-lbl">Installed / action date</label><input type="date" class="form-control f-date"></div>' +
+    '<div class="mb-3"><label class="form-label date-lbl">Installed / action date <span class="text-danger">*</span></label><input type="date" class="form-control f-date"></div>' +
     '<div class="row g-2 mb-3">' +
       '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-scan"><i class="bi bi-qr-code-scan me-1"></i>Scan QR</button></div>' +
       '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-upload"><i class="bi bi-image me-1"></i>Upload QR</button></div>' +
     '</div>' +
     '<input type="file" accept="image/*" class="qr-file hidden">' +
-    '<div class="mb-3"><label class="form-label">Merchant name</label><input class="form-control f-name" placeholder="Auto-filled from KHQR"></div>' +
+    '<div class="mb-3"><label class="form-label">Product Type <span class="text-danger">*</span></label><select class="form-select f-product-type" required><option value="">Select product type</option><option>QR</option><option>POS</option><option>SB</option><option>PW</option><option>Other</option></select></div>' +
+    '<div class="mb-3"><label class="form-label">Serial Number <span class="rq text-danger hidden" data-k="serialNumber"> *</span></label><div class="input-group"><input class="form-control f-serial-number" autocapitalize="characters" autocomplete="off" placeholder="Enter or scan serial number"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan serial number"><i class="bi bi-upc-scan"></i></button></div><div class="form-text">Required only when enabled for this activity by the administrator.</div></div>' +
+    '<div class="mb-3 merchant-name-wrap"><label class="form-label">Merchant name</label><input class="form-control f-name" placeholder="Auto-filled from KHQR"></div>' +
     '<div class="mb-3"><label class="form-label">MID</label><input class="form-control f-mid" inputmode="text" placeholder="Auto-filled from KHQR"></div>' +
     '<div class="mb-3 tid-wrap hidden"><label class="form-label">TID <span class="text-lowercase fw-normal">(terminal ID, required)</span></label><input class="form-control f-tid" autocapitalize="characters" autocomplete="off" placeholder="Auto-filled from KHQR, or type it"></div>' +
     '<div class="mb-3"><label class="form-label">Business name</label><input class="form-control f-biz" value="N/A"></div>' +
@@ -1162,11 +1196,16 @@ function drawStamp(ctx, w, h, d, ms) {
   const lh = Math.round(fs * 1.25);
   // logo, top-right, in a white rounded box
   if (d.logo) {
-    const bh = Math.round(base * 0.1 * (d.logoScale || 100) / 100), bw0 = d.logo.width / d.logo.height * (bh * 0.7), pad = Math.round(bh * 0.15);
-    const bw = Math.min(Math.round(w * 0.4), Math.round(bw0 + pad * 2)), ih = bh - pad * 2, iw = Math.min(bw - pad * 2, ih * d.logo.width / d.logo.height);
-    const x0 = w - mx - bw, y0 = my;
+    // the white box hugs the logo, so the logo itself grows with the Logo size slider
+    const sc = (d.logoScale || 100) / 100, asp = d.logo.width / d.logo.height, pad = Math.max(3, Math.round(base * 0.012 * sc));
+    let ih = base * 0.07 * sc, iw = ih * asp;
+    const maxW = w * 0.7 - 2 * pad, maxH = h * 0.4 - 2 * pad;
+    if (iw > maxW) { iw = maxW; ih = iw / asp; }
+    if (ih > maxH) { ih = maxH; iw = ih * asp; }
+    iw = Math.round(iw); ih = Math.round(ih);
+    const bw = iw + pad * 2, bh = ih + pad * 2, x0 = w - mx - bw, y0 = my;
     ctx.fillStyle = '#fff'; ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(x0, y0, bw, bh, pad) : ctx.rect(x0, y0, bw, bh)); ctx.fill();
-    ctx.drawImage(d.logo, x0 + (bw - iw) / 2, y0 + (bh - iw * d.logo.height / d.logo.width) / 2, iw, iw * d.logo.height / d.logo.width);
+    ctx.drawImage(d.logo, x0 + pad, y0 + pad, iw, ih);
   }
   // map thumbnail, bottom-left
   if (d.map) {
@@ -1264,8 +1303,9 @@ $('#submitBtn').addEventListener('click', async () => {
       if (f.kind === 'phone' && !PHONE_RE.test(v)) { bad(f.label + ' looks wrong.'); return; }
       extra[f.id] = v;
     }
+    if (!g('.f-product-type')) { bad('select a Product Type.'); return; }
     if (!c.photos.length) { bad('attach at least one photo.'); return; }
-    items.push({ type: curType, activity: g('.f-act'), tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: g('.f-biz') || 'N/A', merchant: g('.f-name'), mid: g('.f-mid'), remarks: g('.f-rem'), extra,
+    items.push({ type: curType, activity: g('.f-act'), tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: curType === 'POS' ? 'N/A' : (g('.f-biz') || 'N/A'), merchant: g('.f-name'), mid: g('.f-mid'), remarks: g('.f-rem'), serialNumber: g('.f-serial-number'), productType: g('.f-product-type') || curType, extra,
       phone: ad && ad.contact ? g('.f-phone') : '', tag: ad && ad.contact ? g('.f-tag') : '', oldSn: ad && ad.replace ? g('.f-old') : '', newSn: ad && ad.replace ? g('.f-new') : '',
       btype: ad && ad.bizinfo ? g('.f-btype') : '', hours: ad && ad.bizinfo && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', group: ad && ad.bizinfo ? g('.f-group') : '', photos: c.photos });
   }
@@ -1446,8 +1486,8 @@ $('#csvBtn').addEventListener('click', () => {
   const rows = filtered();
   if (!rows.length) { toast('Nothing to export.', 'warning'); return; }
   const cell = v => { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
-  const lines = [['Timestamp', 'Staff', 'Merchant Name', 'MID', 'TID', 'Business Name', 'Remarks', 'Installed/Action Date', 'Photos', 'Category', 'Activity', 'Stamp', 'Phone', 'Tag', 'Old S/N', 'New S/N', 'Location', 'Business Hours', 'Group Name', 'Business Type', 'Extra Fields']].concat(
-    rows.map(r => [r.ts, r.user, r.merchant, r.mid, r.tid, r.business, r.remarks, r.date || r.ts.slice(0, 10), r.photos, r.type, r.activity, r.stamp, r.phone, r.tag, r.oldSn, r.newSn, r.loc, r.hours, r.group, r.btype, r.extra]));
+  const lines = [['Timestamp', 'Staff', 'Merchant Name', 'MID', 'TID', 'Business Name', 'Remarks', 'Installed/Action Date', 'Photos', 'Category', 'Activity', 'Stamp', 'Phone', 'Tag', 'Old S/N', 'New S/N', 'Serial Number', 'Product Type', 'Location', 'Business Hours', 'Group Name', 'Business Type', 'Extra Fields']].concat(
+    rows.map(r => [r.ts, r.user, r.merchant, r.mid, r.tid, r.business, r.remarks, r.date || r.ts.slice(0, 10), r.photos, r.type, r.activity, r.stamp, r.phone, r.tag, r.oldSn, r.newSn, r.serialNumber, r.productType, r.loc, r.hours, r.group, r.btype, r.extra]));
   const csv = '\uFEFF' + lines.map(l => l.map(cell).join(',')).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -1582,7 +1622,7 @@ $('#tplSend').addEventListener('click', async () => {
 /* ============================ Categories editor (admin) ============================ */
 const catModal = new bootstrap.Modal($('#catModal'));
 let catDraft = [], catSeq = 0;
-const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date']];
+const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date'], ['select', 'Dropdown'], ['checkbox', 'Checkbox']];
 const REQ_LABELS = { phone: 'Phone', tag: 'Tag', oldSn: 'Old S/N', newSn: 'New S/N', btype: 'Type', hours: 'Hours', group: 'Group' };
 /** "Must fill" switches for the built-in boxes this activity shows. */
 function reqChips(a) {
@@ -1640,7 +1680,7 @@ $('#catList').addEventListener('click', e => {
   else if (e.target.closest('.a-del')) { t.acts.splice(ai, 1); renderCatEditor(); }
   else if (e.target.closest('.a-flag')) { const f = e.target.closest('.a-flag').dataset.f; t.acts[ai][f] = !t.acts[ai][f]; renderCatEditor(); }
   else if (e.target.closest('.a-req')) { const k = e.target.closest('.a-req').dataset.k, a = t.acts[ai]; a.req = a.req || {}; a.req[k] = !isReq(a, k); e.target.closest('.a-req').classList.toggle('active', a.req[k]); }
-  else if (e.target.closest('.cf-add')) { const a = t.acts[ai]; a.custom = a.custom || []; if (a.custom.length >= 8) { toast('At most 8 extra boxes per activity.', 'warning'); return; } a.custom.push({ id: 'f' + (++catSeq).toString(36) + Math.random().toString(36).slice(2, 6), label: '', kind: 'text', req: false }); renderCatEditor(); }
+  else if (e.target.closest('.cf-add')) { const a = t.acts[ai]; a.custom = a.custom || []; if (a.custom.length >= 20) { toast('At most 20 extra boxes per activity.', 'warning'); return; } a.custom.push({ id: 'f' + (++catSeq).toString(36) + Math.random().toString(36).slice(2, 6), label: '', kind: 'text', req: false }); renderCatEditor(); }
   else if (e.target.closest('.cf-del')) { t.acts[ai].custom.splice(+e.target.closest('[data-ci]').dataset.ci, 1); renderCatEditor(); }
   else if (e.target.closest('.cf-req')) { const f = t.acts[ai].custom[+e.target.closest('[data-ci]').dataset.ci]; f.req = !f.req; e.target.closest('.cf-req').classList.toggle('active', f.req); }
 });
@@ -1648,7 +1688,14 @@ $('#catSave').addEventListener('click', async () => {
   const btn = $('#catSave'), err = $('#catError'); show(err, false); busy(btn, true, 'Saving…');
   try {
     const out = await api('saveCatalog', S.token, catDraft);
-    setCatalog(out); setType(curType); S.cards.forEach(applyType); renderCatSummary(); catModal.hide(); toast('Categories saved.', 'success');
+    setCatalog(out); setType(curType); S.cards.forEach(card => {
+    applyType(card);
+    const pt = $('.f-product-type', card.el);
+    if (pt && (!pt.value || ['QR','POS','SB','PW'].includes(pt.value))) {
+      const defaults = { 'QR':'QR', 'POS':'POS', 'SB':'SB', 'Payway Inspection':'PW' };
+      pt.value = defaults[t] || 'Other';
+    }
+  }); renderCatSummary(); catModal.hide(); toast('Categories saved.', 'success');
   } catch (ex) { err.textContent = ex.message; show(err, true); }
   busy(btn, false);
 });
@@ -1700,6 +1747,20 @@ function openStampSettings() {
 $$('.st-opt').forEach(el => el.addEventListener('change', () => { readStampForm(); drawStampPreview(); }));
 $$('.st-size').forEach(el => el.addEventListener('input', () => { readStampForm(); drawStampPreview(); }));
 $('#stTitle').addEventListener('input', () => { readStampForm(); drawStampPreview(); });
+/** Cuts empty margins off a logo (transparent edges, or white edges when the picture has no transparency) so it fills its box. */
+function trimLogo(c) {
+  try {
+    const w = c.width, h = c.height, d = c.getContext('2d').getImageData(0, 0, w, h).data;
+    let hasAlpha = false; for (let i = 3; i < d.length; i += 4) if (d[i] < 250) { hasAlpha = true; break; }
+    const empty = i => hasAlpha ? d[i + 3] < 12 : (d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245);
+    let x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (!empty((y * w + x) * 4)) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0 || (x0 === 0 && y0 === 0 && x1 === w - 1 && y1 === h - 1)) return c;
+    const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
+    o.getContext('2d').drawImage(c, x0, y0, o.width, o.height, 0, 0, o.width, o.height);
+    return o;
+  } catch (e) { return c; }
+}
 $('#stLogoFile').addEventListener('change', e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   const url = URL.createObjectURL(f), im = new Image();
@@ -1707,7 +1768,7 @@ $('#stLogoFile').addEventListener('change', e => {
     const r = Math.min(1, 400 / Math.max(im.width, im.height)), c = document.createElement('canvas');
     c.width = Math.round(im.width * r); c.height = Math.round(im.height * r);
     c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
-    stDraft.logoData = c.toDataURL('image/png'); stDraft.logo = true; $('#stLogo').checked = true;
+    stDraft.logoData = trimLogo(c).toDataURL('image/png'); stDraft.logo = true; $('#stLogo').checked = true;
     $('#stLogoNote').textContent = 'Logo ready. Press Save to keep it.'; drawStampPreview();
   };
   im.onerror = () => { URL.revokeObjectURL(url); toast('That image could not be read.', 'warning'); };
