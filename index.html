@@ -18,6 +18,7 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
 
   <style>
     :root {
@@ -58,14 +59,9 @@
     .summary .num { font-size: 2.4rem; font-weight: 800; line-height: 1; color: var(--brand); }
     .summary .ico { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: #eef2ff; color: var(--brand); font-size: 1.5rem; }
     .summary small { color: var(--muted); }
-    .sum-break { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
-    .sum-cat { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: .9rem; margin-top: 8px; }
-    .sum-cat .cnt { background: #eef2ff; color: var(--brand); border-radius: 999px; padding: 1px 10px; min-width: 30px; text-align: center; }
-    .sum-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
-    .sum-act { font-size: .76rem; border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 10px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
-    .sum-act b { background: var(--line); color: inherit; border-radius: 999px; padding: 0 7px; font-weight: 700; }
-    .sum-act.on { color: var(--brand); border-color: var(--brand); }
-    .sum-act.on b { background: var(--brand); color: #fff; }
+    .sum-break { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--muted); }
+    .sum-cat b { font-weight: 700; color: inherit; }
+    .sum-cat.on { color: var(--brand); }
     .fl-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: .82rem; }
     .fl-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }
     .fl-seg button { border: 0; background: transparent; color: var(--muted); font-size: .72rem; font-weight: 700; padding: 3px 9px; }
@@ -92,7 +88,8 @@
     .badge-num { background: #eef2ff; color: var(--brand); border-radius: 10px; padding: 4px 10px; font-weight: 700; font-size: .82rem; }
     .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin-top: 10px; }
     .photo-grid .ph { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #eee; }
-    .photo-grid img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-grid img, .photo-grid video { width: 100%; height: 100%; object-fit: cover; }
+    .photo-grid .vbadge { position: absolute; left: 4px; bottom: 4px; background: rgba(0,0,0,.6); color: #fff; border-radius: 8px; padding: 0 6px; font-size: .8rem; }
     .photo-grid button { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: .7rem; line-height: 1; padding: 0; }
     .prog { height: 6px; border-radius: 6px; display: none; }
 
@@ -243,12 +240,13 @@
         <div class="d-flex gap-3 align-items-center">
           <img id="locMap" class="hidden" alt="Map" style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex:none">
           <div class="flex-grow-1" style="min-width:0">
-            <div class="fw-semibold small"><i class="bi bi-geo-alt-fill text-danger me-1"></i>Current location <span class="text-muted fw-normal">(sent to Telegram)</span></div>
+            <div class="fw-semibold small"><i class="bi bi-geo-alt-fill text-danger me-1"></i>Current location <span class="text-muted fw-normal">(sent to Telegram)</span> <span class="pill hidden" id="locTag">Chosen on map</span></div>
             <div class="small text-muted" id="locAddr">Finding your location…</div>
             <div class="small text-muted" id="locCoords"></div>
           </div>
           <div class="d-flex flex-column gap-1 flex-none">
-            <button type="button" class="btn btn-soft btn-sm" id="locRefresh" aria-label="Refresh location"><i class="bi bi-arrow-repeat"></i></button>
+            <button type="button" class="btn btn-soft btn-sm" id="locRefresh" aria-label="Use my GPS location" title="Use my GPS location"><i class="bi bi-arrow-repeat"></i></button>
+            <button type="button" class="btn btn-soft btn-sm" id="locPick" aria-label="Choose on map" title="Choose on map"><i class="bi bi-pin-map"></i></button>
             <a id="locOpen" class="btn btn-soft btn-sm hidden" target="_blank" rel="noopener" aria-label="Open in Maps"><i class="bi bi-box-arrow-up-right"></i></a>
           </div>
         </div>
@@ -413,6 +411,27 @@
   </div>
 </div>
 
+<!-- Choose location on map -->
+<div class="modal fade" id="mapModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:20px">
+      <div class="modal-header border-0 pb-0">
+        <h6 class="modal-title fw-bold"><i class="bi bi-pin-map me-1"></i>Choose location on map</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group mb-2"><input id="pickQ" class="form-control" placeholder="Search a place or address" autocomplete="off"><button type="button" class="btn btn-soft" id="pickGo" aria-label="Search"><i class="bi bi-search"></i></button></div>
+        <div id="pickMap" style="height:46vh;min-height:260px;border-radius:14px;overflow:hidden"></div>
+        <div class="small text-muted mt-2">Tap the map or drag the pin to the merchant's exact spot. <span id="pickCoords" class="fw-semibold"></span></div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-soft me-auto" id="pickGps"><i class="bi bi-crosshair me-1"></i>My GPS</button>
+        <button type="button" class="btn btn-brand px-4" id="pickUse" disabled>Use this location</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Edit last record -->
 <div class="modal fade" id="editModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -551,6 +570,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
 
 <script>
@@ -562,6 +582,7 @@ const show = (el, on = true) => el.classList.toggle('hidden', !on);
 
 const S = { token: null, user: null, cards: [], seq: 0, rows: [], chart: null, scanTarget: null, reader: null };
 const MAX_PHOTOS = 10;
+const MAX_VIDEOS = 2, MAX_VIDEO_MB = 15;
 const MAX_MERCHANTS = 10;
 /* Categories and activities come from the server (admin can edit them); this is the starting set / offline fallback. */
 const DEFAULT_CATALOG = [
@@ -635,19 +656,31 @@ function syncBtype(el) {
   $$('.btype-chips .chip', el).forEach(b => b.classList.toggle('active', b.dataset.t.toLowerCase() === v));
 }
 const PHONE_RE = /^[0-9+\-\s()]{6,20}$/;
-/** HTML of one admin-added box. Serial boxes get a barcode-scan button. */
+/** HTML of one admin-added box: text / number / phone / date / serial (with scan) / drop-down / tick boxes. */
 function customFieldHtml(f) {
+  const lab = '<label class="form-label">' + esc(f.label) + (f.req ? ' <span class="rq">*</span>' : '') + '</label>';
+  if (f.kind === 'select') return '<div class="mb-3">' + lab + '<select class="form-select" data-fid="' + esc(f.id) + '" data-kind="select"><option value="">Select…</option>' +
+    (f.opts || []).map(o => '<option value="' + esc(o) + '">' + esc(o) + '</option>').join('') + '</select></div>';
+  if (f.kind === 'check') return '<div class="mb-3">' + lab + '<div data-fid="' + esc(f.id) + '" data-kind="check">' +
+    (f.opts || []).map(o => '<div class="form-check"><label class="form-check-label"><input class="form-check-input" type="checkbox" value="' + esc(o) + '"> ' + esc(o) + '</label></div>').join('') + '</div></div>';
   const t = f.kind === 'date' ? 'date' : (f.kind === 'phone' ? 'tel' : 'text'), im = f.kind === 'number' ? 'decimal' : (f.kind === 'phone' ? 'tel' : 'text');
   const inp = '<input class="form-control" data-fid="' + esc(f.id) + '" data-kind="' + f.kind + '" type="' + t + '" inputmode="' + im + '" autocomplete="off"' + (f.kind === 'serial' ? ' autocapitalize="characters"' : '') + '>';
-  return '<div class="mb-3"><label class="form-label">' + esc(f.label) + (f.req ? ' <span class="rq">*</span>' : '') + '</label>' +
-    (f.kind === 'serial' ? '<div class="input-group">' + inp + '<button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div>' : inp) + '</div>';
+  return '<div class="mb-3">' + lab + (f.kind === 'serial' ? '<div class="input-group">' + inp + '<button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div>' : inp) + '</div>';
+}
+/** Value of an extra box: text, or an array of ticked values for tick boxes. */
+function customVal(el) {
+  return el.dataset.kind === 'check' ? $$('input:checked', el).map(i => i.value) : String(el.value || '').trim();
+}
+function setCustomVal(el, v) {
+  if (el.dataset.kind === 'check') { const set = Array.isArray(v) ? v : String(v || '').split(', '); $$('input', el).forEach(i => { i.checked = set.includes(i.value); }); }
+  else el.value = Array.isArray(v) ? v[0] || '' : (v == null ? '' : v);
 }
 /** (Re)draws the admin-added boxes inside box, keeping what was typed. */
 function renderCustom(box, d) {
-  const old = {}; $$('[data-fid]', box).forEach(i => { old[i.dataset.fid] = i.value; });
+  const old = {}; $$('[data-fid]', box).forEach(i => { old[i.dataset.fid] = customVal(i); });
   const list = (d && d.custom) || [];
   box.innerHTML = list.map(customFieldHtml).join('');
-  $$('[data-fid]', box).forEach(i => { if (old[i.dataset.fid] != null) i.value = old[i.dataset.fid]; });
+  $$('[data-fid]', box).forEach(i => { if (old[i.dataset.fid] != null) setCustomVal(i, old[i.dataset.fid]); });
   show(box, list.length > 0);
 }
 /** Shows only the boxes the activity needs (data-fk="key") and puts the red * on the must-fill ones. */
@@ -684,7 +717,7 @@ function setType(t) {
 }
 
 // Paste your Apps Script Web app URL (ends with /exec) here:
-const API_URL = 'https://script.google.com/macros/s/AKfycbww--NYFM4D_ndQiDKewYmVGEidNvdLzU8_IKyTMolXMvbkM5KR7pqG1uJZ0rabMj8YIg/exec';
+const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
 
 async function api(fn, ...args) {
   let json;
@@ -805,8 +838,7 @@ async function loadSummary() {
     $('#sumNum').textContent = s.today;
     $('#sumTotal').textContent = s.total;
     const bt = s.byType || [];
-    $('#sumBreak').innerHTML = bt.map(t => '<div class="sum-cat"><span>' + esc(t.type) + '</span><span class="cnt">' + t.count + '</span></div><div class="sum-acts">' +
-      t.acts.map(a => '<span class="sum-act' + (a.count ? ' on' : '') + '">' + esc(a.n) + '<b>' + a.count + '</b></span>').join('') + '</div>').join('');
+    $('#sumBreak').innerHTML = bt.map(t => '<span class="sum-cat' + (t.count ? ' on' : '') + '">' + esc(shortName(t.type)) + ' <b>' + t.count + '</b></span>').join('');
     show($('#sumBreak'), bt.length > 0);
   } catch (e) { /* non-fatal */ }
 }
@@ -984,13 +1016,15 @@ function addMerchant() {
     '<div class="mb-3 hidden" data-fk="tag"><label class="form-label">Tag <span class="rq hidden">*</span></label><input class="form-control f-tag" maxlength="200" autocomplete="off" placeholder="Extra remark / tag"></div>' +
     '<div class="custom-wrap hidden"></div>' +
     '<div class="mb-3 hidden" data-fk="remarks"><label class="form-label">Remarks <span class="rq hidden">*</span></label><textarea class="form-control f-rem" rows="2"></textarea></div>' +
-    '<div class="hidden" data-fk="photo"><label class="form-label">Photos <span class="rq hidden">*</span> <span class="text-lowercase fw-normal">(max ' + MAX_PHOTOS + ')</span></label>' +
+    '<div class="hidden" data-fk="photo"><label class="form-label">Photos / videos <span class="rq hidden">*</span> <span class="text-lowercase fw-normal">(max ' + MAX_PHOTOS + ', videos ≤ ' + MAX_VIDEOS + ' × ' + MAX_VIDEO_MB + ' MB)</span></label>' +
     '<div class="row g-2">' +
-      '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-cam"><i class="bi bi-camera me-1"></i>Take photo</button></div>' +
-      '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-photo"><i class="bi bi-images me-1"></i>Choose photos</button></div>' +
+      '<div class="col-4"><button type="button" class="btn btn-soft w-100 px-1 btn-cam"><i class="bi bi-camera me-1"></i>Photo</button></div>' +
+      '<div class="col-4"><button type="button" class="btn btn-soft w-100 px-1 btn-vid"><i class="bi bi-camera-video me-1"></i>Video</button></div>' +
+      '<div class="col-4"><button type="button" class="btn btn-soft w-100 px-1 btn-photo"><i class="bi bi-images me-1"></i>Files</button></div>' +
     '</div>' +
     '<input type="file" accept="image/*" capture="environment" class="cam-file hidden">' +
-    '<input type="file" accept="image/*" multiple class="photo-file hidden">' +
+    '<input type="file" accept="video/*" capture="environment" class="vid-file hidden">' +
+    '<input type="file" accept="image/*,video/*" multiple class="photo-file hidden">' +
     '<div class="form-check form-switch mt-2"><input class="form-check-input stamp-sw" type="checkbox" role="switch"><label class="form-check-label small">Stamp date, GPS &amp; name on photos from <b>Take photo</b></label></div>' +
     '<div class="small text-muted mt-1"><button type="button" class="btn btn-link btn-sm p-0 align-baseline stamp-link">Stamp settings</button> · Prefer another camera app? Take the photos there, then tap <b>Choose photos</b>.</div>' +
     '<div class="progress prog mt-2"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div></div>' +
@@ -1014,6 +1048,8 @@ function addMerchant() {
   $('.btn-photo', el).onclick = () => $('.photo-file', el).click();
   $('.photo-file', el).onchange = async e => { await addPhotos(card, Array.from(e.target.files), false); e.target.value = ''; };
   $('.btn-cam', el).onclick = () => $('.cam-file', el).click();
+  $('.btn-vid', el).onclick = () => $('.vid-file', el).click();
+  $('.vid-file', el).onchange = async e => { await addPhotos(card, Array.from(e.target.files), false); e.target.value = ''; };
   $('.cam-file', el).onchange = async e => { await addPhotos(card, Array.from(e.target.files), true); e.target.value = ''; };
   $('.stamp-link', el).onclick = openStampSettings;
   const sw = $('.stamp-sw', el); sw.checked = stampOn;
@@ -1078,7 +1114,7 @@ function plusCode(lat, lon) {
 }
 
 /* ---- GPS + address + map tile, cached while you stay in the same spot ---- */
-const geo = { pos: null, place: null, key: '', lookup: null, map: null, mapKey: '', mapLookup: null };
+const geo = { manual: false, pos: null, place: null, key: '', lookup: null, map: null, mapKey: '', mapLookup: null };
 function readPosition(timeout) {
   return new Promise(res => {
     if (!navigator.geolocation) return res(null);
@@ -1132,7 +1168,8 @@ function loadMap(p) {
   }).catch(() => { geo.mapKey = ''; return null; });
   return geo.mapLookup;
 }
-async function refreshGeo(timeout) {
+async function refreshGeo(timeout, force) {
+  if (geo.manual && !force && geo.pos) return geo.pos;       // a place picked on the map stays until you tap "use my GPS"
   const p = await readPosition(timeout);
   if (p) { geo.pos = p; lookupPlace(p); loadMap(p); }
   return geo.pos;
@@ -1152,18 +1189,76 @@ function paintLoc() {
   if (!p) return;
   $('#locAddr').textContent = addrText(p);
   $('#locCoords').textContent = coordText(p);
+  show($('#locTag'), !!geo.manual);
   const o = $('#locOpen'); o.href = 'https://maps.google.com/?q=' + p.lat + ',' + p.lon; show(o, true);
   if (geo.map) { try { $('#locMap').src = geo.map.toDataURL('image/png'); show($('#locMap'), true); } catch (e) {} }
 }
 async function refreshLocation() {
+  geo.manual = false; show($('#locTag'), false);
   $('#locAddr').textContent = 'Finding your location…'; $('#locCoords').textContent = '';
-  const p = await refreshGeo(10000);
+  const p = await refreshGeo(10000, true);
   if (!p) { $('#locAddr').textContent = 'Location unavailable. Allow location access in your browser, then tap refresh.'; return; }
   paintLoc();
   try { await geo.lookup; } catch (e) {} paintLoc();
   try { await geo.mapLookup; } catch (e) {} paintLoc();
 }
 $('#locRefresh').addEventListener('click', refreshLocation);
+
+/* ---- choose the location on a map ---- */
+const mapModal = new bootstrap.Modal($('#mapModal'));
+const pick = { map: null, marker: null, pt: null };
+function setPick(lat, lon, pan) {
+  pick.pt = { lat, lon };
+  pick.marker.setLatLng([lat, lon]);
+  if (pan) pick.map.setView([lat, lon], Math.max(pick.map.getZoom(), 17));
+  $('#pickCoords').textContent = +lat.toFixed(6) + ', ' + +lon.toFixed(6);
+  $('#pickUse').disabled = false;
+}
+function openPick() {
+  if (!window.L) { toast('The map could not load. Check your internet connection.', 'warning'); return; }
+  mapModal.show();
+  setTimeout(() => {
+    const start = geo.pos ? [geo.pos.lat, geo.pos.lon] : [11.5564, 104.9282];
+    if (!pick.map) {
+      pick.map = L.map('pickMap').setView(start, geo.pos ? 17 : 12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(pick.map);
+      pick.marker = L.marker(start, { draggable: true, icon: L.divIcon({ className: '', html: '<div style="font-size:30px;line-height:30px;margin:-28px 0 0 -9px">📍</div>', iconSize: [0, 0] }) }).addTo(pick.map);
+      pick.map.on('click', e => setPick(e.latlng.lat, e.latlng.lng, false));
+      pick.marker.on('dragend', () => { const l = pick.marker.getLatLng(); setPick(l.lat, l.lng, false); });
+    } else pick.map.setView(start, geo.pos ? 17 : pick.map.getZoom());
+    pick.marker.setLatLng(start);
+    pick.pt = geo.pos ? { lat: geo.pos.lat, lon: geo.pos.lon } : null;
+    $('#pickCoords').textContent = geo.pos ? +geo.pos.lat.toFixed(6) + ', ' + +geo.pos.lon.toFixed(6) : '';
+    $('#pickUse').disabled = !geo.pos;
+    pick.map.invalidateSize();
+  }, 300);
+}
+$('#locPick').addEventListener('click', openPick);
+async function pickSearch() {
+  const q = $('#pickQ').value.trim(); if (!q || !pick.map) return;
+  try {
+    const r = await (await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=en&q=' + encodeURIComponent(q))).json();
+    if (!r.length) { toast('Place not found. Try a different name.', 'warning'); return; }
+    setPick(+r[0].lat, +r[0].lon, true);
+  } catch (e) { toast('Search failed. Check your internet connection.', 'warning'); }
+}
+$('#pickGo').addEventListener('click', pickSearch);
+$('#pickQ').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); pickSearch(); } });
+$('#pickGps').addEventListener('click', async () => {
+  const p = await readPosition(8000);
+  if (p) setPick(p.lat, p.lon, true); else toast('Could not read your GPS. Allow location access.', 'warning');
+});
+$('#pickUse').addEventListener('click', async () => {
+  if (!pick.pt) return;
+  geo.manual = true; geo.key = ''; geo.mapKey = '';
+  geo.pos = { lat: pick.pt.lat, lon: pick.pt.lon, acc: 0, t: Date.now() };
+  mapModal.hide();
+  lookupPlace(geo.pos); loadMap(geo.pos);
+  $('#locAddr').textContent = 'Finding the address…'; paintLoc();
+  try { await geo.lookup; } catch (e) {} paintLoc();
+  try { await geo.mapLookup; } catch (e) {} paintLoc();
+  toast('Location set from the map. Telegram and photo stamps will use it.', 'success');
+});
 const logoImg = { src: '', img: null };
 function getLogo() {
   if (!stampCfg.logoData) return Promise.resolve(null);
@@ -1259,6 +1354,15 @@ function compress(file, opts) {
     img.src = url;
   });
 }
+const isVideoSrc = src => /^data:video\//i.test(src);
+const isVideoFile = f => /^video\//i.test(f.type) || /\.(mp4|mov|m4v|webm|3gp)$/i.test(f.name || '');
+function readVideo(f) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).replace(/^data:[^;,]*/, m => /^data:video\//i.test(m) ? m : 'data:video/mp4'));
+    r.onerror = () => rej(new Error('Unreadable video')); r.readAsDataURL(f);
+  });
+}
 async function addPhotos(card, files, fromCamera) {
   const room = MAX_PHOTOS - card.photos.length;
   if (room <= 0) { toast('Photo limit reached (' + MAX_PHOTOS + ').', 'warning'); return; }
@@ -1271,8 +1375,13 @@ async function addPhotos(card, files, fromCamera) {
   const sd = doStamp ? await stampData() : null;       // GPS can take a few seconds the first time
   for (let i = 0; i < files.length; i++) {
     try {
-      card.photos.push(await compress(files[i], { stamp: doStamp, data: sd }));   // each photo keeps its own time
-    } catch (e) { toast('Skipped an unreadable photo.', 'warning'); }
+      const f = files[i];
+      if (isVideoFile(f)) {
+        if (card.photos.filter(isVideoSrc).length >= MAX_VIDEOS) { toast('At most ' + MAX_VIDEOS + ' videos per merchant.', 'warning'); continue; }
+        if (f.size > MAX_VIDEO_MB * 1048576) { toast('Video is ' + Math.round(f.size / 1048576) + ' MB; the limit is ' + MAX_VIDEO_MB + ' MB. Record a shorter clip or lower the video quality.', 'warning'); continue; }
+        card.photos.push(await readVideo(f));
+      } else card.photos.push(await compress(f, { stamp: doStamp, data: sd }));   // each photo keeps its own time
+    } catch (e) { toast('Skipped an unreadable file.', 'warning'); }
     bar.style.width = Math.round(((i + 1) / files.length) * 100) + '%';
   }
   setTimeout(() => { prog.style.display = 'none'; }, 350);
@@ -1283,7 +1392,7 @@ function renderPhotos(card) {
   grid.innerHTML = '';
   card.photos.forEach((src, i) => {
     const d = document.createElement('div'); d.className = 'ph';
-    d.innerHTML = '<img src="' + src + '" alt=""><button type="button" aria-label="Remove">✕</button>';
+    d.innerHTML = (isVideoSrc(src) ? '<video src="' + src + '" muted playsinline preload="metadata"></video><span class="vbadge"><i class="bi bi-play-fill"></i></span>' : '<img src="' + src + '" alt="">') + '<button type="button" aria-label="Remove">✕</button>';
     $('button', d).onclick = () => { card.photos.splice(i, 1); renderPhotos(card); };
     grid.appendChild(d);
   });
@@ -1306,8 +1415,8 @@ $('#submitBtn').addEventListener('click', async () => {
     if (L('phone') && g('.f-phone') && !PHONE_RE.test(g('.f-phone'))) { bad('the phone number looks wrong.', '.f-phone'); return; }
     const extra = {};
     for (const f of ((ad && ad.custom) || [])) {
-      const inp = $('[data-fid="' + f.id + '"]', c.el), v = inp ? inp.value.trim() : '';
-      if (!v) { if (f.req) { bad('enter ' + f.label + '.'); if (inp) inp.focus(); return; } continue; }
+      const inp = $('[data-fid="' + f.id + '"]', c.el), v = inp ? customVal(inp) : '';
+      if (!v.length) { if (f.req) { bad((f.kind === 'select' ? 'choose ' : f.kind === 'check' ? 'tick at least one ' : 'enter ') + f.label + '.'); if (inp && inp.focus) inp.focus(); return; } continue; }
       if (f.kind === 'number' && !/^-?\d+(\.\d+)?$/.test(v)) { bad(f.label + ' must be a number.'); return; }
       if (f.kind === 'phone' && !PHONE_RE.test(v)) { bad(f.label + ' looks wrong.'); return; }
       extra[f.id] = v;
@@ -1319,6 +1428,8 @@ $('#submitBtn').addEventListener('click', async () => {
       serial: v('serial', '.f-serial'), oldSn: v('oldSn', '.f-old'), newSn: v('newSn', '.f-new'), phone: v('phone', '.f-phone'), tag: v('tag', '.f-tag'),
       btype: v('btype', '.f-btype'), group: v('group', '.f-group'), hours: L('hours') && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', photos: L('photo') ? c.photos : [] });
   }
+  const bytes = items.reduce((t, it) => t + it.photos.reduce((u, p) => u + p.length, 0), 0);
+  if (bytes > 32e6) { toast('Photos and videos are too big to send together (' + Math.round(bytes / 1e6) + ' MB). Submit fewer merchants at once or remove a video.', 'danger'); return; }
   const btn = $('#submitBtn');
   busy(btn, true, 'Submitting…');
   try {
@@ -1632,7 +1743,7 @@ $('#tplSend').addEventListener('click', async () => {
 /* ============================ Categories editor (admin) ============================ */
 const catModal = new bootstrap.Modal($('#catModal'));
 let catDraft = [], catSeq = 0;
-const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date']];
+const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date'], ['select', 'Drop-down'], ['check', 'Check boxes']];
 /** One row per box: Off / Optional / Must (red). */
 function fieldRows(a) {
   return '<details class="mt-2 a-fields"><summary class="small fw-semibold" style="cursor:pointer">Boxes to fill <span class="text-muted fw-normal">(' + FIELD_KEYS.filter(k => lvl(a, k) > 0).map(k => FIELD_NAMES[k] + (lvl(a, k) === 2 ? '*' : '')).join(', ') + ')</span></summary>' +
@@ -1658,7 +1769,8 @@ function renderCatEditor() {
           '<div class="d-flex gap-1 mb-1 align-items-center" data-ci="' + ci + '"><input class="form-control form-control-sm cf-label" maxlength="30" placeholder="Box name" value="' + esc(f.label) + '">' +
           '<select class="form-select form-select-sm cf-kind" style="max-width:112px">' + CF_KINDS.map(k => '<option value="' + k[0] + '"' + (f.kind === k[0] ? ' selected' : '') + '>' + k[1] + '</option>').join('') + '</select>' +
           '<button type="button" class="chip cf-req' + (f.req ? ' active' : '') + '">Must</button>' +
-          '<button type="button" class="btn btn-sm btn-outline-danger border-0 cf-del" aria-label="Remove box"><i class="bi bi-x"></i></button></div>').join('') +
+          '<button type="button" class="btn btn-sm btn-outline-danger border-0 cf-del" aria-label="Remove box"><i class="bi bi-x"></i></button></div>' +
+          (f.kind === 'select' || f.kind === 'check' ? '<input class="form-control form-control-sm cf-opts mb-2" data-ci="' + ci + '" placeholder="Values, separated by commas (e.g. Small, Medium, Large)" value="' + esc((f.opts || []).join(', ')) + '">' : '')).join('') +
         '<button type="button" class="btn btn-soft btn-sm cf-add mt-1"><i class="bi bi-plus-lg me-1"></i>Box</button></div>').join('') +
       '<button type="button" class="btn btn-soft btn-sm c-addact"><i class="bi bi-plus-lg me-1"></i>Activity</button></div>').join('');
 }
@@ -1671,10 +1783,11 @@ $('#catList').addEventListener('input', e => {
   if (e.target.classList.contains('c-name')) t.name = e.target.value;
   else if (e.target.classList.contains('c-code')) t.code = e.target.value.toUpperCase();
   else if (e.target.classList.contains('a-name')) t.acts[+e.target.closest('[data-ai]').dataset.ai].n = e.target.value;
+  else if (e.target.classList.contains('cf-opts')) t.acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.dataset.ci].opts = e.target.value.split(',').map(x => x.trim()).filter(Boolean);
   else if (e.target.classList.contains('cf-label')) t.acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].label = e.target.value;
 });
 $('#catList').addEventListener('change', e => {
-  if (e.target.classList.contains('cf-kind')) catDraft[+e.target.closest('[data-ti]').dataset.ti].acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].kind = e.target.value;
+  if (e.target.classList.contains('cf-kind')) { catDraft[+e.target.closest('[data-ti]').dataset.ti].acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].kind = e.target.value; renderCatEditor(); }
 });
 $('#catList').addEventListener('click', e => {
   const box = e.target.closest('[data-ti]'); if (!box) return; const ti = +box.dataset.ti, t = catDraft[ti];
@@ -1815,7 +1928,7 @@ function openEdit() {
   $('#bizTypeList').innerHTML = BIZ_TYPES.map(t => '<option value="' + esc(t) + '">').join('');
   const hm = /(\d{2}:\d{2}) ?- ?(\d{2}:\d{2})/.exec(r.hours || ''); $('#eOpen').value = hm ? hm[1] : ''; $('#eClose').value = hm ? hm[2] : '';
   $('#eBType').value = r.btype || ''; $('#eGroup').value = r.group || '';
-  { const d0 = actDef(r.type, r.activity); renderCustom($('#eCustom'), d0); const mp = {}; String(r.extra || '').split(' | ').forEach(x => { const i = x.indexOf(': '); if (i > 0) mp[x.slice(0, i)] = x.slice(i + 2); }); ((d0 && d0.custom) || []).forEach(f => { const el = $('[data-fid="' + f.id + '"]', $('#eCustom')); if (el && mp[f.label] != null) el.value = mp[f.label]; }); }
+  { const d0 = actDef(r.type, r.activity); renderCustom($('#eCustom'), d0); const mp = {}; String(r.extra || '').split(' | ').forEach(x => { const i = x.indexOf(': '); if (i > 0) mp[x.slice(0, i)] = x.slice(i + 2); }); ((d0 && d0.custom) || []).forEach(f => { const el = $('[data-fid="' + f.id + '"]', $('#eCustom')); if (el && mp[f.label] != null) setCustomVal(el, mp[f.label]); }); }
   $('#ePhone').value = r.phone || ''; $('#eTag').value = r.tag || ''; $('#eSerial').value = r.serial || ''; $('#eOldSn').value = r.oldSn || ''; $('#eNewSn').value = r.newSn || '';
   updateEditDateLabel();
   editModal.show();
@@ -1830,7 +1943,7 @@ $('#editForm').addEventListener('submit', async e => {
     const r = await api('updateLastRecord', S.token, {
       stamp: $('#eStamp').value, activity: $('#eAct').value, date: $('#eDate').value, merchant: $('#eName').value.trim(),
       mid: $('#eMid').value.trim(), tid: $('#eTid').value.trim(), business: $('#eBiz').value.trim(), remarks: $('#eRem').value.trim(),
-      extra: Object.fromEntries($$('#eCustom [data-fid]').map(i => [i.dataset.fid, i.value.trim()])), btype: $('#eBType').value.trim(), group: $('#eGroup').value.trim(), hours: $('#eOpen').value && $('#eClose').value ? $('#eOpen').value + ' - ' + $('#eClose').value : '',
+      extra: Object.fromEntries($$('#eCustom [data-fid]').map(i => [i.dataset.fid, customVal(i)])), btype: $('#eBType').value.trim(), group: $('#eGroup').value.trim(), hours: $('#eOpen').value && $('#eClose').value ? $('#eOpen').value + ' - ' + $('#eClose').value : '',
       serial: $('#eSerial').value.trim(), phone: $('#ePhone').value.trim(), tag: $('#eTag').value.trim(), oldSn: $('#eOldSn').value.trim(), newSn: $('#eNewSn').value.trim()
     });
     S.last = r.record; renderLast(); editModal.hide();
