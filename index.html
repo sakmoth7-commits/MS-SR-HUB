@@ -1257,6 +1257,37 @@ async function photoExifGps(file) {
   } catch (e) { /* Missing or unreadable EXIF is normal for many images. */ }
   return null;
 }
+/* OCR fallback: read visible latitude/longitude stamps when EXIF GPS is absent.\n   Tesseract is loaded on demand, so normal uploads do not pay the OCR cost. */
+let photoOcrPromise = null;
+function loadPhotoOcr() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (!photoOcrPromise) photoOcrPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    script.onload = () => window.Tesseract ? resolve(window.Tesseract) : reject(new Error('OCR library unavailable'));
+    script.onerror = () => reject(new Error('Could not load OCR library'));
+    document.head.appendChild(script);
+  });
+  return photoOcrPromise;
+}
+async function photoOcrGps(file) {
+  if (!file || !/^image\//i.test(file.type || '')) return null;
+  try {
+    const Tesseract = await loadPhotoOcr();
+    const result = await Tesseract.recognize(file, 'eng', { logger: () => {} });
+    const lines = String(result && result.data && result.data.text || '').split(/\r?\n/);
+    for (const line of lines) {
+      const nums = line.match(/[+-]?\d{1,3}\.\d{3,}/g) || [];
+      for (let i = 0; i < nums.length - 1; i++) {
+        const lat = Number(nums[i]), lon = Number(nums[i + 1]);
+        if (Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && Math.abs(lat) >= 1 && Math.abs(lon) >= 1) {
+          return { lat, lon, source: 'OCR' };
+        }
+      }
+    }
+  } catch (e) { /* OCR is best-effort; do not replace the current pin on failure. */ }
+  return null;
+}
 async function applyPhotoLocation(p) {
   if (!p) return;
   geo.pos = { lat: p.lat, lon: p.lon, acc: 0, t: Date.now() };
@@ -1276,11 +1307,12 @@ async function addPhotos(card, files, fromCamera) {
 
   const doStamp = !!(fromCamera && stampOn);
   // Camera stamping already captures the phone's live GPS in stampData().
-  // For gallery uploads, prefer the first original photo that contains EXIF GPS.
+  // For gallery uploads, prefer EXIF GPS. If absent, OCR visible coordinate stamps.
   if (!fromCamera) {
     for (const f of files) {
-      const p = await photoExifGps(f);
-      if (p) { await applyPhotoLocation(p); break; }
+      let p = await photoExifGps(f);
+      if (!p) p = await photoOcrGps(f);
+      if (p) { await applyPhotoLocation(p); if (p.source === 'OCR') toast('Location pin filled from photo text (OCR). Please verify the pin.', 'warning'); break; }
     }
   }
   const prog = $('.prog', card.el), bar = $('.progress-bar', card.el);
