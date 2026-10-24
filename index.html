@@ -224,14 +224,8 @@
     <!-- NEW -->
     <section id="pane-new" class="fade-in">
       <div class="card-x hidden" id="lastCard">
-        <div class="d-flex align-items-center gap-2">
-          <div class="flex-grow-1 min-w-0">
-            <div class="small text-muted">Your last record</div>
-            <div class="fw-semibold text-truncate" id="lastTitle"></div>
-            <div class="small text-muted text-truncate" id="lastSub"></div>
-          </div>
-          <button class="btn btn-soft btn-sm flex-none" id="lastEditBtn" type="button"><i class="bi bi-pencil me-1"></i>Edit</button>
-        </div>
+        <div class="small text-muted mb-2">Today's records <span class="text-muted">· edit up to 3 times, same day only</span></div>
+        <div id="todayList" style="max-height:230px;overflow:auto"></div>
       </div>
       <div class="seg" id="typeTabs" role="tablist"></div>
       <div id="merchantList"></div>
@@ -459,7 +453,7 @@
         <div class="mb-3 hidden" data-fk="tag"><label class="form-label">Tag <span class="rq hidden">*</span></label><input id="eTag" class="form-control" maxlength="200"></div>
         <div id="eCustom" class="hidden"></div>
         <div class="mb-1 hidden" data-fk="remarks"><label class="form-label">Remarks <span class="rq hidden">*</span></label><textarea id="eRem" class="form-control" rows="2"></textarea></div>
-        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Saving also updates the message in Telegram. Photos can't be changed after submitting.</div>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Saving also updates the message in Telegram. Each record can be edited 3 times, on the day it was submitted. Photos can't be changed after submitting.</div>
         <div id="eError" class="text-danger small mt-3 hidden"></div>
       </div>
       <div class="modal-footer border-0 pt-0">
@@ -717,7 +711,7 @@ function setType(t) {
 }
 
 // Paste your Apps Script Web app URL (ends with /exec) here:
-const API_URL = 'https://script.google.com/macros/s/AKfycbww--NYFM4D_ndQiDKewYmVGEidNvdLzU8_IKyTMolXMvbkM5KR7pqG1uJZ0rabMj8YIg/exec';
+const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
 
 async function api(fn, ...args) {
   let json;
@@ -1018,12 +1012,10 @@ function addMerchant() {
     '<div class="mb-3 hidden" data-fk="remarks"><label class="form-label">Remarks <span class="rq hidden">*</span></label><textarea class="form-control f-rem" rows="2"></textarea></div>' +
     '<div class="hidden" data-fk="photo"><label class="form-label">Photos / videos <span class="rq hidden">*</span> <span class="text-lowercase fw-normal">(max ' + MAX_PHOTOS + ', videos ≤ ' + MAX_VIDEOS + ' × ' + MAX_VIDEO_MB + ' MB)</span></label>' +
     '<div class="row g-2">' +
-      '<div class="col-4"><button type="button" class="btn btn-soft w-100 px-1 btn-cam"><i class="bi bi-camera me-1"></i>Photo</button></div>' +
-      '<div class="col-4"><button type="button" class="btn btn-soft w-100 px-1 btn-vid"><i class="bi bi-camera-video me-1"></i>Video</button></div>' +
-      '<div class="col-4"><button type="button" class="btn btn-soft w-100 px-1 btn-photo"><i class="bi bi-images me-1"></i>Files</button></div>' +
+      '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-cam"><i class="bi bi-camera me-1"></i>Take photo</button></div>' +
+      '<div class="col-6"><button type="button" class="btn btn-soft w-100 btn-photo"><i class="bi bi-images me-1"></i>Photos or Videos</button></div>' +
     '</div>' +
     '<input type="file" accept="image/*" capture="environment" class="cam-file hidden">' +
-    '<input type="file" accept="video/*" capture="environment" class="vid-file hidden">' +
     '<input type="file" accept="image/*,video/*" multiple class="photo-file hidden">' +
     '<div class="form-check form-switch mt-2"><input class="form-check-input stamp-sw" type="checkbox" role="switch"><label class="form-check-label small">Stamp date, GPS &amp; name on photos from <b>Take photo</b></label></div>' +
     '<div class="small text-muted mt-1"><button type="button" class="btn btn-link btn-sm p-0 align-baseline stamp-link">Stamp settings</button> · Prefer another camera app? Take the photos there, then tap <b>Choose photos</b>.</div>' +
@@ -1048,8 +1040,6 @@ function addMerchant() {
   $('.btn-photo', el).onclick = () => $('.photo-file', el).click();
   $('.photo-file', el).onchange = async e => { await addPhotos(card, Array.from(e.target.files), false); e.target.value = ''; };
   $('.btn-cam', el).onclick = () => $('.cam-file', el).click();
-  $('.btn-vid', el).onclick = () => $('.vid-file', el).click();
-  $('.vid-file', el).onchange = async e => { await addPhotos(card, Array.from(e.target.files), false); e.target.value = ''; };
   $('.cam-file', el).onchange = async e => { await addPhotos(card, Array.from(e.target.files), true); e.target.value = ''; };
   $('.stamp-link', el).onclick = openStampSettings;
   const sw = $('.stamp-sw', el); sw.checked = stampOn;
@@ -1896,17 +1886,25 @@ $('#stSave').addEventListener('click', () => {
 });
 
 /* ============================ Last record + edit ============================ */
+const MAX_EDITS = 3;
 async function loadLast() {
-  try { S.last = await api('getLastRecord', S.token); } catch (e) { S.last = null; }
+  try { S.today = await api('getTodayRecords', S.token); } catch (e) { S.today = []; }
   renderLast();
 }
 function renderLast() {
-  const r = S.last && S.last.stamp ? S.last : null;
-  show($('#lastCard'), !!r);
-  if (!r) return;
-  $('#lastTitle').textContent = r.type + (r.activity && r.activity !== r.type ? ' · ' + r.activity : '') + ' — ' + (r.merchant || r.mid);
-  $('#lastSub').textContent = r.stamp + ' · ' + (r.date || r.ts.slice(0, 10));
+  const list = S.today || [];
+  show($('#lastCard'), list.length > 0);
+  $('#todayList').innerHTML = list.map(r =>
+    '<div class="d-flex align-items-center gap-2 py-1 border-top" data-stamp="' + esc(r.stamp) + '"><div class="flex-grow-1 min-w-0">' +
+    '<div class="fw-semibold small text-truncate">' + esc(r.type + (r.activity && r.activity !== r.type ? ' · ' + r.activity : '') + ' — ' + (r.merchant || r.mid || r.stamp)) + '</div>' +
+    '<div class="small text-muted text-truncate">' + esc(r.stamp) + ' · ' + (r.editsLeft > 0 ? r.editsLeft + ' of ' + MAX_EDITS + ' edits left' : 'edit limit reached') + '</div></div>' +
+    '<button class="btn btn-soft btn-sm flex-none t-edit" type="button"' + (r.editsLeft > 0 ? '' : ' disabled') + '><i class="bi bi-pencil me-1"></i>Edit</button></div>').join('');
 }
+$('#todayList').addEventListener('click', e => {
+  const b = e.target.closest('.t-edit'); if (!b) return;
+  const r = (S.today || []).find(x => x.stamp === b.closest('[data-stamp]').dataset.stamp);
+  if (r) { S.last = r; openEdit(); }
+});
 const editModal = new bootstrap.Modal($('#editModal'));
 function updateEditDateLabel() {
   const t = S.last ? S.last.type : curType, a = $('#eAct').value, d = actDef(t, a);
@@ -1917,7 +1915,7 @@ function openEdit() {
   const r = S.last; if (!r) return;
   show($('#eError'), false);
   $('#eCat').textContent = r.type;
-  $('#eStamp').value = r.stamp; $('#eStampTxt').textContent = r.stamp;
+  $('#eStamp').value = r.stamp; $('#eStampTxt').textContent = r.stamp + ' · edit ' + ((r.edits || 0) + 1) + ' of ' + MAX_EDITS;
   const list = ACTIVITIES[r.type] || [r.activity], single = list.length === 1;
   $('#eAct').innerHTML = (single ? '' : '<option value="">Select activity…</option>') + list.map(a => '<option>' + esc(a) + '</option>').join('');
   $('#eAct').value = list.includes(r.activity) ? r.activity : (single ? list[0] : '');
@@ -1933,20 +1931,19 @@ function openEdit() {
   updateEditDateLabel();
   editModal.show();
 }
-$('#lastEditBtn').addEventListener('click', openEdit);
 $('#eAct').addEventListener('change', updateEditDateLabel);
 $('#editForm').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = $('#eSave'), err = $('#eError');
   show(err, false); busy(btn, true, 'Saving…');
   try {
-    const r = await api('updateLastRecord', S.token, {
+    const r = await api('updateRecord', S.token, {
       stamp: $('#eStamp').value, activity: $('#eAct').value, date: $('#eDate').value, merchant: $('#eName').value.trim(),
       mid: $('#eMid').value.trim(), tid: $('#eTid').value.trim(), business: $('#eBiz').value.trim(), remarks: $('#eRem').value.trim(),
       extra: Object.fromEntries($$('#eCustom [data-fid]').map(i => [i.dataset.fid, customVal(i)])), btype: $('#eBType').value.trim(), group: $('#eGroup').value.trim(), hours: $('#eOpen').value && $('#eClose').value ? $('#eOpen').value + ' - ' + $('#eClose').value : '',
       serial: $('#eSerial').value.trim(), phone: $('#ePhone').value.trim(), tag: $('#eTag').value.trim(), oldSn: $('#eOldSn').value.trim(), newSn: $('#eNewSn').value.trim()
     });
-    S.last = r.record; renderLast(); editModal.hide();
+    S.today = (S.today || []).map(x => x.stamp === r.record.stamp ? r.record : x); renderLast(); editModal.hide();
     toast('Saved. Telegram: ' + r.telegram, r.telegram === 'updated' ? 'success' : 'warning');
     loadSummary();
     if (!$('#pane-records').classList.contains('hidden')) loadRecords();
