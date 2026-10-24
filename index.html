@@ -632,7 +632,8 @@ function setAct(card, a) {
   $('.f-act', card.el).value = a;
   $$('.act-chips .chip', card.el).forEach(b => b.classList.toggle('active', b.dataset.a === a));
   const d = actDef(curType, a);
-  ['phone','tag','oldSn','newSn','originSn','btype','hours','group'].forEach(k => show($('.bi-'+k, card.el), builtInShown(d,k)));
+  show($('.contact-wrap', card.el), builtInShown(d, 'phone') || builtInShown(d, 'tag'));
+  ['tag','oldSn','newSn','originSn','btype','hours','group'].forEach(k => show($('.bi-'+k, card.el), builtInShown(d,k)));
   markRequired(card.el, d); renderCustom($('.custom-wrap', card.el), d);
   applyActivityFields(card, d);
   updateDateLabel(card);
@@ -948,7 +949,7 @@ function addMerchant() {
     '<div class="mb-3 bi-btype hidden"><label class="form-label">Business type<span class="rq text-danger hidden" data-k="btype"> *</span></label><input class="form-control f-btype mb-2" maxlength="60" autocomplete="off" placeholder="Type, or tap one below">' +
       '<div class="chips btype-chips">' + BIZ_TYPES.map(t => '<button type="button" class="chip" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div></div>' +
       '<div class="mb-3 bi-hours hidden"><label class="form-label">Business hours<span class="rq text-danger hidden" data-k="hours"> *</span></label><div class="row g-2 align-items-center"><div class="col"><input type="time" class="form-control f-open" aria-label="Opens"></div><div class="col-auto small text-muted">to</div><div class="col"><input type="time" class="form-control f-close" aria-label="Closes"></div></div></div>' +
-      '<div class="mb-3 bi-group hidden"><label class="form-label">Merchant group<span class="rq text-danger hidden" data-k="group"> *</span></label><input class="form-control f-group" maxlength="100" autocomplete="off" placeholder="e.g. owner / chain / group name"></div></div>' +
+      '<div class="mb-3 bi-group hidden"><label class="form-label">Merchant group<span class="rq text-danger hidden" data-k="group"> *</span></label><input class="form-control f-group" maxlength="100" autocomplete="off" placeholder="e.g. owner / chain / group name"></div>' +
     '<div class="row g-2 mb-3"><div class="col-6 bi-oldSn hidden"><label class="form-label">Old S/N<span class="rq text-danger hidden" data-k="oldSn"> *</span></label><div class="input-group"><input class="form-control f-old" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
       '<div class="col-6 bi-newSn hidden"><label class="form-label">New S/N<span class="rq text-danger hidden" data-k="newSn"> *</span></label><div class="input-group"><input class="form-control f-new" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div></div>' +
     '<div class="mb-3 bi-originSn hidden"><label class="form-label">Origin S/N<span class="rq text-danger hidden" data-k="originSn"> *</span></label><div class="input-group"><input class="form-control f-origin" autocapitalize="characters" autocomplete="off"><button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div></div>' +
