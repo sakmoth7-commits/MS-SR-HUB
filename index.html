@@ -154,6 +154,8 @@
     .theme-btn { background: rgba(255,255,255,.18); border: 0; color: #fff; width: 36px; height: 36px; border-radius: 50%; }
     .login-theme { position: absolute; top: 14px; right: 14px; }
   </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>#manualMap{height: min(62vh,480px);min-height:300px;border-radius:12px;z-index:1}.map-help{font-size:.82rem;color:#64748b}</style>
 </head>
 <body>
 
@@ -234,6 +236,9 @@
             <button type="button" class="btn btn-soft btn-sm" id="locRefresh" aria-label="Refresh location"><i class="bi bi-arrow-repeat"></i></button>
             <a id="locOpen" class="btn btn-soft btn-sm hidden" target="_blank" rel="noopener" aria-label="Open in Maps"><i class="bi bi-box-arrow-up-right"></i></a>
           </div>
+        </div>
+        <div class="d-flex gap-2 mt-2 flex-wrap">
+          <button type="button" class="btn btn-soft btn-sm" id="locChooseMap"><i class="bi bi-map me-1"></i>Choose location on map</button>
         </div>
       </div>
       <button class="btn btn-soft w-100 mb-3" id="addMerchantBtn"><i class="bi bi-plus-lg me-1"></i>Add another merchant</button>
@@ -432,6 +437,14 @@
   </div>
 </div>
 
+<!-- Manual location picker -->
+<div class="modal fade" id="locationMapModal" tabindex="-1">
+ <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><div class="modal-content" style="border-radius:20px">
+  <div class="modal-header border-0 pb-0"><h6 class="modal-title fw-bold"><i class="bi bi-map me-1"></i>Choose location on map</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+  <div class="modal-body"><div class="map-help mb-2">Tap the map to place the pin. You can drag the pin to adjust it.</div><div id="manualMap"></div><div class="small mt-2" id="manualMapCoords">Tap the map to select coordinates.</div><div class="small text-muted" id="manualMapAddr"></div></div>
+  <div class="modal-footer border-0 pt-0"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-brand" id="locConfirmMap">Use this location</button></div>
+ </div></div>
+</div>
 <!-- Categories editor (admin) -->
 <div class="modal fade" id="catModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -614,17 +627,20 @@ function applyActivityFields(card, d) {
 const PHONE_RE = /^[0-9+\-\s()]{6,20}$/;
 /** HTML of one admin-added box. Serial boxes get a barcode-scan button. */
 function customFieldHtml(f) {
+  const required = f.req ? ' <span class="text-danger">*</span>' : '';
+  if (f.kind === 'checkbox') return '<div class="mb-3" data-checkgroup="' + esc(f.id) + '"><label class="form-label d-block">' + esc(f.label) + required + '</label>' +
+    ((f.options || []).map((v,i) => '<label class="form-check form-check-inline me-3"><input class="form-check-input" type="checkbox" data-fid="' + esc(f.id) + '" data-kind="checkbox" value="' + esc(v) + '"> <span class="form-check-label">' + esc(v) + '</span></label>').join('') || '<div class="small text-muted">No options configured by admin.</div>') + '</div>';
   const t = f.kind === 'date' ? 'date' : (f.kind === 'phone' ? 'tel' : 'text'), im = f.kind === 'number' ? 'decimal' : (f.kind === 'phone' ? 'tel' : 'text');
   const inp = '<input class="form-control" data-fid="' + esc(f.id) + '" data-kind="' + f.kind + '" type="' + t + '" inputmode="' + im + '" autocomplete="off"' + (f.kind === 'serial' ? ' autocapitalize="characters"' : '') + '>';
-  return '<div class="mb-3"><label class="form-label">' + esc(f.label) + (f.req ? ' <span class="text-danger">*</span>' : '') + '</label>' +
+  return '<div class="mb-3"><label class="form-label">' + esc(f.label) + required + '</label>' +
     (f.kind === 'serial' ? '<div class="input-group">' + inp + '<button type="button" class="btn btn-soft btn-sn" aria-label="Scan barcode"><i class="bi bi-upc-scan"></i></button></div>' : inp) + '</div>';
 }
 /** (Re)draws the admin-added boxes inside box, keeping what was typed. */
 function renderCustom(box, d) {
-  const old = {}; $$('[data-fid]', box).forEach(i => { old[i.dataset.fid] = i.value; });
+  const old = {}; $$('[data-fid]', box).forEach(i => { const id=i.dataset.fid; if(i.type==='checkbox'){(old[id]||(old[id]=[]));if(i.checked)old[id].push(i.value);}else old[id]=i.value; });
   const list = (d && d.custom) || [];
   box.innerHTML = list.map(customFieldHtml).join('');
-  $$('[data-fid]', box).forEach(i => { if (old[i.dataset.fid] != null) i.value = old[i.dataset.fid]; });
+  $$('[data-fid]', box).forEach(i => { if (old[i.dataset.fid] != null) { if(i.type==='checkbox') i.checked=old[i.dataset.fid].includes(i.value); else i.value = old[i.dataset.fid]; } });
   show(box, list.length > 0);
 }
 function markRequired(root, d) { $$('.rq', root).forEach(x => show(x, isReq(d, x.dataset.k))); }
@@ -1137,7 +1153,40 @@ async function refreshLocation() {
   try { await geo.lookup; } catch (e) {} paintLoc();
   try { await geo.mapLookup; } catch (e) {} paintLoc();
 }
-$('#locRefresh').addEventListener('click', refreshLocation);
+$('#locRefresh').addEventListener('click', refreshLocation);\n
+const locationMapModal = new bootstrap.Modal($('#locationMapModal'));
+let manualMap = null, manualMarker = null, chosenLocation = null;
+function setChosenMapPoint(lat, lon) {
+  chosenLocation = {lat:Number(lat), lon:Number(lon), t:Date.now(), acc:0};
+  $('#manualMapCoords').textContent = coordText(chosenLocation);
+  $('#manualMapAddr').textContent = 'Looking up address…';
+  fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lon+'&zoom=18&accept-language=en')
+    .then(r=>r.json()).then(j=>{ if(chosenLocation && chosenLocation.lat===Number(lat) && chosenLocation.lon===Number(lon)) { chosenLocation.addr=j.display_name||''; $('#manualMapAddr').textContent=chosenLocation.addr; } })
+    .catch(()=>{ $('#manualMapAddr').textContent='Address unavailable; coordinates can still be used.'; });
+}
+$('#locChooseMap').addEventListener('click', () => {
+  chosenLocation = geo.pos ? {lat:geo.pos.lat,lon:geo.pos.lon,t:Date.now(),acc:0,addr:addrText(geo.pos)} : {lat:13.4125,lon:103.8667,t:Date.now(),acc:0};
+  locationMapModal.show();
+  setTimeout(() => {
+    if (!manualMap) {
+      manualMap = L.map('manualMap').setView([chosenLocation.lat,chosenLocation.lon], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(manualMap);
+      manualMap.on('click', e => { if(!manualMarker) manualMarker=L.marker(e.latlng,{draggable:true}).addTo(manualMap).on('dragend',ev=>setChosenMapPoint(ev.target.getLatLng().lat,ev.target.getLatLng().lng)); else manualMarker.setLatLng(e.latlng); setChosenMapPoint(e.latlng.lat,e.latlng.lng); });
+    }
+    manualMap.invalidateSize(); manualMap.setView([chosenLocation.lat,chosenLocation.lon],15);
+    if(!manualMarker) manualMarker=L.marker([chosenLocation.lat,chosenLocation.lon],{draggable:true}).addTo(manualMap).on('dragend',ev=>setChosenMapPoint(ev.target.getLatLng().lat,ev.target.getLatLng().lng));
+    else manualMarker.setLatLng([chosenLocation.lat,chosenLocation.lon]);
+    setChosenMapPoint(chosenLocation.lat,chosenLocation.lon);
+  },250);
+});
+$('#locConfirmMap').addEventListener('click', () => {
+  if(!chosenLocation) { toast('Tap the map to choose a pin first.','warning'); return; }
+  geo.pos={lat:chosenLocation.lat,lon:chosenLocation.lon,t:Date.now(),acc:0};
+  geo.place=null; geo.key=''; geo.map=null; geo.mapKey='';
+  lookupPlace(geo.pos); loadMap(geo.pos); paintLoc();
+  locationMapModal.hide();
+});
+
 const logoImg = { src: '', img: null };
 function getLogo() {
   if (!stampCfg.logoData) return Promise.resolve(null);
@@ -1298,8 +1347,10 @@ $('#submitBtn').addEventListener('click', async () => {
     }
     const extra = {};
     for (const f of ((ad && ad.custom) || [])) {
-      const inp = $('[data-fid="' + f.id + '"]', c.el), v = inp ? inp.value.trim() : '';
-      if (!v) { if (f.req) { bad('enter ' + f.label + '.'); if (inp) inp.focus(); return; } continue; }
+      const inps = $$('[data-fid="' + f.id + '"]', c.el);
+      const v = f.kind === 'checkbox' ? inps.filter(x=>x.checked).map(x=>x.value) : ((inps[0] && inps[0].value.trim()) || '');
+      if (!v || (Array.isArray(v) && !v.length)) { if (f.req) { bad('select ' + f.label + '.'); if (inps[0]) inps[0].focus(); return; } continue; }
+      if (f.kind === 'checkbox') { extra[f.id] = v; continue; }
       if (f.kind === 'number' && !/^-?\d+(\.\d+)?$/.test(v)) { bad(f.label + ' must be a number.'); return; }
       if (f.kind === 'phone' && !PHONE_RE.test(v)) { bad(f.label + ' looks wrong.'); return; }
       extra[f.id] = v;
@@ -1307,13 +1358,17 @@ $('#submitBtn').addEventListener('click', async () => {
     if (fieldCfg(ad, 'photos').show && fieldCfg(ad, 'photos').req && !c.photos.length) { bad('attach at least one photo.'); return; }
     items.push({ type: curType, activity: g('.f-act'), tid: needTid ? g('.f-tid') : '', date: g('.f-date'), business: fieldCfg(ad, 'business').show ? (g('.f-biz') || 'N/A') : 'N/A', merchant: fieldCfg(ad, 'merchant').show ? g('.f-name') : '', mid: fieldCfg(ad, 'mid').show ? g('.f-mid') : '', remarks: fieldCfg(ad, 'remarks').show ? g('.f-rem') : '', extra,
       phone: builtInShown(ad,'phone') ? g('.f-phone') : '', tag: builtInShown(ad,'tag') ? g('.f-tag') : '', oldSn: builtInShown(ad,'oldSn') ? g('.f-old') : '', newSn: builtInShown(ad,'newSn') ? g('.f-new') : '', originSn: builtInShown(ad,'originSn') ? g('.f-origin') : '',
-      btype: builtInShown(ad,'btype') ? g('.f-btype') : '', hours: builtInShown(ad,'hours') && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', group: builtInShown(ad,'group') ? g('.f-group') : '', photos: c.photos });
+      btype: builtInShown(ad,'btype') ? g('.f-btype') : '', hours: builtInShown(ad,'hours') && g('.f-open') ? g('.f-open') + ' - ' + g('.f-close') : '', group: builtInShown(ad,'group') ? g('.f-group') : '', photos: c.photos, location: (geo.pos ? {lat:geo.pos.lat,lon:geo.pos.lon,addr:addrText(geo.pos)} : null) });
   }
   const btn = $('#submitBtn');
   busy(btn, true, 'Submitting…');
   try {
-    const loc = await currentLocation();
-    if (loc) items.forEach(it => { it.location = loc; });
+    let loc = geo.pos ? {lat:geo.pos.lat,lon:geo.pos.lon,addr:addrText(geo.pos)} : await currentLocation();
+    if (loc) items.forEach(it => { if (!it.location) it.location = loc; });
+    const activeDef = actDef(curType, items[0] && items[0].activity);
+    const locCfg = activeDef && activeDef.fields && activeDef.fields.location;
+    if (locCfg && locCfg.show === false) items.forEach(it => { it.location = null; });
+    if (locCfg && locCfg.show !== false && locCfg.req && !items.every(it=>it.location && isFinite(Number(it.location.lat)) && isFinite(Number(it.location.lon)))) throw new Error('Choose a location on the map before submitting.');
     const r = await api('submitInstallations', S.token, items);
     toast('Saved ' + r.saved + ' ' + curType + ' (' + r.stamps[0] + (r.stamps.length > 1 ? ' … ' + r.stamps[r.stamps.length - 1].slice(-3) : '') + '). Telegram: ' + r.telegram, /FAILED|not configured/.test(r.telegram) ? 'warning' : 'success');
     $('#merchantList').innerHTML = ''; S.cards = []; addMerchant();
@@ -1622,13 +1677,13 @@ $('#tplSend').addEventListener('click', async () => {
 /* ============================ Categories editor (admin) ============================ */
 const catModal = new bootstrap.Modal($('#catModal'));
 let catDraft = [], catSeq = 0;
-const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date']];
+const CF_KINDS = [['text', 'Text'], ['number', 'Number'], ['phone', 'Phone'], ['serial', 'S/N (scan)'], ['date', 'Date'], ['checkbox', 'Checkbox options']];
 const REQ_LABELS = { phone: 'Phone', tag: 'Tag', oldSn: 'Old S/N', newSn: 'New S/N', originSn: 'Origin S/N', btype: 'Business Type', hours: 'Business Hours', group: 'Merchant Group' };
 function fieldSettingsHtml(a, categoryName) {
-  const keys = ['merchant', 'mid', 'remarks', 'photos', 'business'];
+  const keys = ['merchant', 'mid', 'remarks', 'photos', 'business', 'location'];
   return '<div class="small text-muted mt-2">Fields for this activity (tap Show / Must)</div><div class="d-flex flex-wrap gap-1 mt-1">' +
     keys.map(k => {
-      const cfg = a.fields && a.fields[k] ? a.fields[k] : { show: k !== 'business' || categoryName !== 'POS', req: k === 'photos' };
+      const cfg = a.fields && a.fields[k] ? a.fields[k] : { show: k === 'location' ? true : (k !== 'business' || categoryName !== 'POS'), req: k === 'photos' };
       return '<span class="d-inline-flex align-items-center gap-1 border rounded-pill px-2 py-1 small">' + esc(FIELD_LABELS[k]) +
         '<button type="button" class="chip a-field-show' + (cfg.show ? ' active' : '') + '" data-k="' + k + '" data-mode="show">Show</button>' +
         '<button type="button" class="chip a-field-req' + (cfg.req ? ' active' : '') + '" data-k="' + k + '" data-mode="req"' + (!cfg.show ? ' disabled' : '') + '>Must *</button></span>';
@@ -1664,6 +1719,7 @@ function renderCatEditor() {
         (a.custom || []).map((f, ci) =>
           '<div class="d-flex gap-1 mb-1 align-items-center" data-ci="' + ci + '"><input class="form-control form-control-sm cf-label" maxlength="30" placeholder="Box name" value="' + esc(f.label) + '">' +
           '<select class="form-select form-select-sm cf-kind" style="max-width:112px">' + CF_KINDS.map(k => '<option value="' + k[0] + '"' + (f.kind === k[0] ? ' selected' : '') + '>' + k[1] + '</option>').join('') + '</select>' +
+          (f.kind === 'checkbox' ? '<input class="form-control form-control-sm cf-options mt-1" placeholder="Options separated by commas" value="' + esc((f.options || []).join(', ')) + '">' : '') +
           '<button type="button" class="chip cf-req' + (f.req ? ' active' : '') + '">Must</button>' +
           '<button type="button" class="btn btn-sm btn-outline-danger border-0 cf-del" aria-label="Remove box"><i class="bi bi-x"></i></button></div>').join('') +
         '<button type="button" class="btn btn-soft btn-sm cf-add mt-1"><i class="bi bi-plus-lg me-1"></i>Box</button></div>').join('') +
@@ -1679,10 +1735,11 @@ $('#catList').addEventListener('input', e => {
   else if (e.target.classList.contains('c-code')) t.code = e.target.value.toUpperCase();
   else if (e.target.classList.contains('a-name')) t.acts[+e.target.closest('[data-ai]').dataset.ai].n = e.target.value;
   else if (e.target.classList.contains('cf-label')) t.acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].label = e.target.value;
+  else if (e.target.classList.contains('cf-options')) t.acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].options = e.target.value.split(',').map(v=>v.trim()).filter(Boolean);
 });
 $('#catList').addEventListener('change', e => {
   if (e.target.classList.contains('c-tid')) catDraft[+e.target.closest('[data-ti]').dataset.ti].tid = e.target.checked;
-  else if (e.target.classList.contains('cf-kind')) catDraft[+e.target.closest('[data-ti]').dataset.ti].acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci].kind = e.target.value;
+  else if (e.target.classList.contains('cf-kind')) { const f=catDraft[+e.target.closest('[data-ti]').dataset.ti].acts[+e.target.closest('[data-ai]').dataset.ai].custom[+e.target.closest('[data-ci]').dataset.ci]; f.kind=e.target.value; if(f.kind==='checkbox') f.options=f.options||[]; renderCatEditor(); }
 });
 $('#catList').addEventListener('click', e => {
   const box = e.target.closest('[data-ti]'); if (!box) return; const ti = +box.dataset.ti, t = catDraft[ti];
@@ -1901,5 +1958,5 @@ applyTheme();
   } catch (e) { showLogin(); }
 })();
 </script>
-</body>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>\n</body>
 </html>
